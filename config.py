@@ -1,5 +1,5 @@
-BOT_TOKEN = "توکن ربات تلگرام"
+import os
 
-CHAT_ID = "چت آیدی تلگرام"
-
-SCAN_INTERVAL = 60
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL", "60"))
