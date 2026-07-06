@@ -1,4 +1,6 @@
 from telegram import Bot
+from telegram.constants import ParseMode
+
 
 class TelegramNotifier:
 
@@ -7,8 +9,20 @@ class TelegramNotifier:
         self.chat_id = chat_id
 
     async def send(self, message):
-        await self.bot.send_message(
-            chat_id=self.chat_id,
-            text=message,
-            parse_mode="HTML"
-        )
+
+        try:
+
+            await self.bot.send_message(
+                chat_id=self.chat_id,
+                text=message,
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True
+            )
+
+            return True
+
+        except Exception as e:
+
+            print("Telegram Error:", e)
+
+            return False
