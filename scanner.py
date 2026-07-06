@@ -61,8 +61,7 @@ class MarketScanner:
 
             data = await response.json()
 
-            return data["result"]["list"][0]
-                async def scan(self):
+            return data["result"]["list"][0]    async def scan(self):
 
         alerts = []
 
@@ -138,8 +137,7 @@ class MarketScanner:
                                 score
                             )
 
-                        )
-                                            if (
+                        )                    if (
                         change <= DUMP_PERCENT
                         and self.state.can_send(symbol, "DUMP")
                     ):
