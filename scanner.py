@@ -6,105 +6,44 @@ from state import AlertState
 
 class MarketScanner:
     def __init__(self):
-        self.state = AlertState(ALERT_COOLDOWN)
-        self.session = None
-
+        self.state=AlertState(ALERT_COOLDOWN)
+        self.session=None
     async def get_session(self):
         if self.session is None:
-            self.session = aiohttp.ClientSession()
+            self.session=aiohttp.ClientSession()
         return self.session
-
-    async def get_markets(self):
-        session = await self.get_session()
-
-        url = (
-            "https://api.coingecko.com/api/v3/coins/markets"
-            "?vs_currency=usd&order=volume_desc&per_page=250&page=1&sparkline=false"
-        )
-
-        async with session.get(url) as response:
-            data = await response.json()
-            return data
-
+    async def get_symbols(self):
+        s=await self.get_session()
+        async with s.get(BASE_URL+"/v5/market/instruments-info?category=linear") as r:
+            data=await r.json(content_type=None)
+            return [c["symbol"] for c in data.get("result",{}).get("list",[]) if c.get("quoteCoin")=="USDT"]
+    async def get_ticker(self,symbol):
+        s=await self.get_session()
+        async with s.get(BASE_URL+f"/v5/market/tickers?category=linear&symbol={symbol}") as r:
+            data=await r.json(content_type=None)
+            lst=data.get("result",{}).get("list",[])
+            return lst[0] if lst else None
     async def scan(self):
-        alerts = []
-
-        try:
-            coins = await self.get_markets()
-
-            for coin in coins:
-                try:
-                    symbol = coin["symbol"].upper() + "USDT"
-                    price = float(coin["current_price"])
-                    change = float(coin.get("price_change_percentage_24h") or 0)
-                    volume = float(coin.get("total_volume") or 0)
-                    high = float(coin.get("high_24h") or price)
-
-                    score = 0
-
-                    if change >= PUMP_PERCENT:
-                        score += 40
-
-                    if change <= DUMP_PERCENT:
-                        score += 40
-
-                    distance = ((high - price) / high) * 100 if high else 0
-
-                    if (
-                        distance <= NEAR_HIGH_PERCENT
-                        and self.state.can_send(symbol, "HIGH")
-                    ):
-                        alerts.append(
-                            make_message(
-                                "🔥 نزدیک سقف ۲۴ ساعته",
-                                symbol,
-                                price,
-                                change,
-                                volume,
-                                score + 20,
-                            )
-                        )
-
-                    if (
-                        change >= PUMP_PERCENT
-                        and self.state.can_send(symbol, "PUMP")
-                    ):
-                        alerts.append(
-                            make_message(
-                                "🚀 پامپ",
-                                symbol,
-                                price,
-                                change,
-                                volume,
-                                score,
-                            )
-                        )
-
-                    if (
-                        change <= DUMP_PERCENT
-                        and self.state.can_send(symbol, "DUMP")
-                    ):
-                        alerts.append(
-                            make_message(
-                                "📉 دامپ",
-                                symbol,
-                                price,
-                                change,
-                                volume,
-                                score,
-                            )
-                        )
-
-                except Exception as e:
-                    print(e)
-
-                await asyncio.sleep(0.05)
-
-        except Exception as e:
-            print("Scanner:", e)
-
+        alerts=[]
+        for symbol in await self.get_symbols():
+            try:
+                t=await self.get_ticker(symbol)
+                if not t: continue
+                vals=[t.get("lastPrice"),t.get("highPrice24h"),t.get("lowPrice24h"),t.get("turnover24h")]
+                if any(v in (None,"") for v in vals):
+                    continue
+                last=float(vals[0]); high=float(vals[1]); low=float(vals[2]); vol=float(vals[3])
+                if low<=0: continue
+                ch=((last-low)/low)*100
+                score=40 if ch>=PUMP_PERCENT or ch<=DUMP_PERCENT else 0
+                if ch>=PUMP_PERCENT and self.state.can_send(symbol,"PUMP"):
+                    alerts.append(make_message("ð Ù¾Ø§ÙÙ¾",symbol,last,ch,vol,score))
+                elif ch<=DUMP_PERCENT and self.state.can_send(symbol,"DUMP"):
+                    alerts.append(make_message("ð Ø¯Ø§ÙÙ¾",symbol,last,ch,vol,score))
+            except Exception as e:
+                print(symbol,e)
+            await asyncio.sleep(0.05)
         return alerts
-
     async def close(self):
         if self.session:
             await self.session.close()
