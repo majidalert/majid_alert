@@ -4,7 +4,6 @@ from config import *
 from utils import make_message
 from state import AlertState
 
-
 class MarketScanner:
     def __init__(self):
         self.state = AlertState(ALERT_COOLDOWN)
@@ -15,76 +14,32 @@ class MarketScanner:
             self.session = aiohttp.ClientSession()
         return self.session
 
-    async def get_symbols(self):
-        session = await self.get_session()
-        url = BASE_URL + "/v5/market/instruments-info?category=linear"
-
-        async with session.get(url) as response:
-            text = await response.text()
-
-            try:
-                data = await response.json()
-            except Exception:
-                print("Bybit Response:")
-                print(text)
-                return []
-
-            if data.get("retCode") != 0:
-                print(data)
-                return []
-
-            result = data["result"]["list"]
-
-            symbols = []
-            for coin in result:
-                if coin.get("quoteCoin") == "USDT":
-                    symbols.append(coin["symbol"])
-
-            return symbols
-
-    async def get_ticker(self, symbol):
+    async def get_markets(self):
         session = await self.get_session()
 
-        url = BASE_URL + f"/v5/market/tickers?category=linear&symbol={symbol}"
+        url = (
+            "https://api.coingecko.com/api/v3/coins/markets"
+            "?vs_currency=usd&order=volume_desc&per_page=250&page=1&sparkline=false"
+        )
 
         async with session.get(url) as response:
-            text = await response.text()
-
-            try:
-                data = await response.json()
-            except Exception:
-                print(symbol)
-                print(text)
-                return None
-
-            if data.get("retCode") != 0:
-                return None
-
-            return data["result"]["list"][0]
+            data = await response.json()
+            return data
 
     async def scan(self):
         alerts = []
 
         try:
-            symbols = await self.get_symbols()
+            coins = await self.get_markets()
 
-            for symbol in symbols:
-
-                ticker = await self.get_ticker(symbol)
-
-                if ticker is None:
-                    continue
-
+            for coin in coins:
                 try:
-                    last_price = float(ticker["lastPrice"])
-                    high_price = float(ticker["highPrice24h"])
-                    low_price = float(ticker["lowPrice24h"])
-                    volume = float(ticker["turnover24h"])
+                    symbol = coin["symbol"].upper() + "USDT"
+                    price = float(coin["current_price"])
+                    change = float(coin.get("price_change_percentage_24h") or 0)
+                    volume = float(coin.get("total_volume") or 0)
+                    high = float(coin.get("high_24h") or price)
 
-                    if low_price == 0:
-                        continue
-
-                    change = ((last_price - low_price) / low_price) * 100
                     score = 0
 
                     if change >= PUMP_PERCENT:
@@ -93,7 +48,7 @@ class MarketScanner:
                     if change <= DUMP_PERCENT:
                         score += 40
 
-                    distance = ((high_price - last_price) / high_price) * 100
+                    distance = ((high - price) / high) * 100 if high else 0
 
                     if (
                         distance <= NEAR_HIGH_PERCENT
@@ -103,7 +58,7 @@ class MarketScanner:
                             make_message(
                                 "🔥 نزدیک سقف ۲۴ ساعته",
                                 symbol,
-                                last_price,
+                                price,
                                 change,
                                 volume,
                                 score + 20,
@@ -118,7 +73,7 @@ class MarketScanner:
                             make_message(
                                 "🚀 پامپ",
                                 symbol,
-                                last_price,
+                                price,
                                 change,
                                 volume,
                                 score,
@@ -133,7 +88,7 @@ class MarketScanner:
                             make_message(
                                 "📉 دامپ",
                                 symbol,
-                                last_price,
+                                price,
                                 change,
                                 volume,
                                 score,
@@ -141,7 +96,7 @@ class MarketScanner:
                         )
 
                 except Exception as e:
-                    print(symbol, e)
+                    print(e)
 
                 await asyncio.sleep(0.05)
 
