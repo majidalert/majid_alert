@@ -15,6 +15,9 @@ class MarketScanner:
         self.history = MarketHistory()
         self.session = None
 
+        # جلوگیری از هشدارهای تکراری
+        self.last_alerts = {}
+
 
     async def get_session(self):
 
@@ -180,11 +183,8 @@ class MarketScanner:
                 vals = [
 
                     ticker.get("lastPrice"),
-
                     ticker.get("highPrice24h"),
-
                     ticker.get("lowPrice24h"),
-
                     ticker.get("turnover24h"),
 
                 ]
@@ -218,9 +218,7 @@ class MarketScanner:
 
                 if change < MIN_RISE_FROM_LOW:
                     continue
-
-
-                (
+                                    (
                     score,
                     high3,
                     high7,
@@ -347,6 +345,7 @@ class MarketScanner:
                     resistance_type = "🚀 پامپ"
 
 
+
                 heat = "⭐"
 
 
@@ -365,6 +364,7 @@ class MarketScanner:
                 elif score >= 60:
 
                     heat = "⭐⭐"
+
 
 
                 message = make_message(
@@ -413,6 +413,19 @@ class MarketScanner:
                         f"📊 حجم میانگین: {avg_volume:,.0f}"
 
                     )
+
+
+                # جلوگیری از هشدار تکراری
+                now = asyncio.get_event_loop().time()
+
+                if symbol in self.last_alerts:
+
+                    if now - self.last_alerts[symbol] < ALERT_COOLDOWN:
+
+                        continue
+
+
+                self.last_alerts[symbol] = now
 
 
                 alerts.append(message)
