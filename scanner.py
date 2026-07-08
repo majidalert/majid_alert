@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+import time
 
 from config import *
 from utils import make_message
@@ -15,7 +16,7 @@ class MarketScanner:
         self.history = MarketHistory()
         self.session = None
 
-        # جلوگیری از هشدارهای تکراری
+        # جلوگیری از هشدار تکراری
         self.last_alerts = {}
 
 
@@ -32,24 +33,15 @@ class MarketScanner:
         session = await self.get_session()
 
         async with session.get(
-            BASE_URL +
-            "/v5/market/instruments-info?category=linear"
+            BASE_URL + "/v5/market/instruments-info?category=linear"
         ) as response:
 
             data = await response.json(content_type=None)
 
-            result = data.get(
-                "result",
-                {}
-            ).get(
-                "list",
-                []
-            )
-
             return [
-                coin["symbol"]
-                for coin in result
-                if coin.get("quoteCoin") == "USDT"
+                x["symbol"]
+                for x in data.get("result", {}).get("list", [])
+                if x.get("quoteCoin") == "USDT"
             ]
 
 
@@ -64,32 +56,20 @@ class MarketScanner:
 
             data = await response.json(content_type=None)
 
-            result = data.get(
-                "result",
-                {}
-            ).get(
-                "list",
-                []
-            )
+            result = data.get("result", {}).get("list", [])
 
-            if not result:
-                return None
-
-            return result[0]
+            return result[0] if result else None
 
 
     async def calculate_score(
         self,
         symbol,
-        last_price,
+        price,
         volume,
         change
     ):
 
         score = 0
-
-        weekly_high = None
-        three_day_high = None
 
         high3, low3 = await self.history.get_three_day_levels(symbol)
 
@@ -100,67 +80,34 @@ class MarketScanner:
 
         if low3:
 
-            rise3 = (
-                (last_price - low3)
-                / low3
-            ) * 100
-
-            if rise3 >= MIN_RISE_FROM_LOW:
+            if ((price-low3)/low3)*100 >= MIN_RISE_FROM_LOW:
                 score += 25
 
 
         if low7:
 
-            rise7 = (
-                (last_price - low7)
-                / low7
-            ) * 100
-
-            if rise7 >= MIN_RISE_FROM_LOW:
+            if ((price-low7)/low7)*100 >= MIN_RISE_FROM_LOW:
                 score += 25
 
 
         if high3:
 
-            three_day_high = high3
-
-            distance = (
-                (high3 - last_price)
-                / high3
-            ) * 100
-
-            if distance <= THREE_DAY_RESISTANCE_DISTANCE:
+            if ((high3-price)/high3)*100 <= THREE_DAY_RESISTANCE_DISTANCE:
                 score += 20
 
 
         if high7:
 
-            weekly_high = high7
-
-            distance = (
-                (high7 - last_price)
-                / high7
-            ) * 100
-
-            if distance <= WEEKLY_RESISTANCE_DISTANCE:
+            if ((high7-price)/high7)*100 <= WEEKLY_RESISTANCE_DISTANCE:
                 score += 20
 
 
-        if avg_volume > 0:
-
-            if volume >= (
-                avg_volume *
-                VOLUME_MULTIPLIER
-            ):
-                score += 10
+        if avg_volume and volume >= avg_volume * VOLUME_MULTIPLIER:
+            score += 10
 
 
-        return (
-            score,
-            three_day_high,
-            weekly_high,
-            avg_volume,
-        )
+        return score, avg_volume
+
 
 
     async def scan(self):
@@ -176,256 +123,64 @@ class MarketScanner:
 
                 ticker = await self.get_ticker(symbol)
 
-                if ticker is None:
+                if not ticker:
                     continue
 
 
-                vals = [
-
-                    ticker.get("lastPrice"),
-                    ticker.get("highPrice24h"),
-                    ticker.get("lowPrice24h"),
-                    ticker.get("turnover24h"),
-
-                ]
+                price = float(ticker["lastPrice"])
+                low = float(ticker["lowPrice24h"])
+                volume = float(ticker["turnover24h"])
 
 
-                if any(v in (None, "") for v in vals):
+                if low <= 0:
                     continue
 
 
-                last_price = float(vals[0])
-
-                high_price = float(vals[1])
-
-                low_price = float(vals[2])
-
-                volume = float(vals[3])
-
-
-                if low_price <= 0:
-                    continue
-
-
-                change = (
-
-                    (last_price - low_price)
-
-                    / low_price
-
-                ) * 100
+                change = ((price-low)/low)*100
 
 
                 if change < MIN_RISE_FROM_LOW:
                     continue
-                                    (
-                    score,
-                    high3,
-                    high7,
-                    avg_volume,
 
-                ) = await self.calculate_score(
 
+                score, avg_volume = await self.calculate_score(
                     symbol,
-
-                    last_price,
-
+                    price,
                     volume,
-
-                    change,
-
+                    change
                 )
-
-
-                daily_distance = (
-
-                    (high_price - last_price)
-
-                    / high_price
-
-                ) * 100
-
-
-                if daily_distance <= DAILY_RESISTANCE_DISTANCE:
-
-                    score += 15
-
-
-                if change >= PUMP_PERCENT:
-
-                    score += 10
-
-
-                psychological = False
-
-
-                if last_price >= 1:
-
-                    integer = round(last_price)
-
-                    if abs(last_price - integer) / integer <= 0.01:
-
-                        psychological = True
-
-                        score += 10
-
-
-                else:
-
-                    levels = [
-
-                        0.1,
-                        0.2,
-                        0.3,
-                        0.5,
-                        0.8,
-                        1.0,
-
-                    ]
-
-
-                    for level in levels:
-
-                        if abs(last_price - level) / level <= 0.02:
-
-                            psychological = True
-
-                            score += 10
-
-                            break
 
 
                 if score < MIN_SCORE:
-
                     continue
 
 
-                resistance_type = ""
-
-
-                if high7:
-
-                    distance_week = (
-
-                        (high7 - last_price)
-
-                        / high7
-
-                    ) * 100
-
-
-                    if distance_week <= WEEKLY_RESISTANCE_DISTANCE:
-
-                        resistance_type = "🟥 مقاومت هفتگی"
-
-
-                elif high3:
-
-                    distance_three = (
-
-                        (high3 - last_price)
-
-                        / high3
-
-                    ) * 100
-
-
-                    if distance_three <= THREE_DAY_RESISTANCE_DISTANCE:
-
-                        resistance_type = "🟧 مقاومت ۳ روزه"
-
-
-                elif daily_distance <= DAILY_RESISTANCE_DISTANCE:
-
-                    resistance_type = "🟨 مقاومت روزانه"
-
-
-                else:
-
-                    resistance_type = "🚀 پامپ"
-
-
-
-                heat = "⭐"
-
-
-                if score >= 90:
-
-                    heat = "⭐⭐⭐⭐⭐"
-
-                elif score >= 80:
-
-                    heat = "⭐⭐⭐⭐"
-
-                elif score >= 70:
-
-                    heat = "⭐⭐⭐"
-
-                elif score >= 60:
-
-                    heat = "⭐⭐"
-
-
-
                 message = make_message(
-
-                    resistance_type,
-
+                    "🚀 پامپ",
                     symbol,
-
-                    last_price,
-
+                    price,
                     change,
-
                     volume,
-
-                    score,
-
+                    score
                 )
 
 
-                message += (
+                now = time.time()
 
-                    f"\n"
-
-                    f"🔥 قدرت هشدار: {heat}"
-
-                )
-
-
-                if psychological:
-
-                    message += (
-
-                        "\n"
-
-                        "🧠 نزدیک عدد روانی"
-
-                    )
-
-
-                if avg_volume > 0:
-
-                    message += (
-
-                        f"\n"
-
-                        f"📊 حجم میانگین: {avg_volume:,.0f}"
-
-                    )
-
-
-                # جلوگیری از هشدار تکراری
-                now = asyncio.get_event_loop().time()
 
                 if symbol in self.last_alerts:
 
                     if now - self.last_alerts[symbol] < ALERT_COOLDOWN:
-
                         continue
 
 
                 self.last_alerts[symbol] = now
+
+
+                message += (
+                    "\n🔥 قدرت هشدار: "
+                    + ("⭐⭐⭐⭐⭐" if score >= 90 else "⭐⭐⭐")
+                )
 
 
                 alerts.append(message)
@@ -448,11 +203,9 @@ class MarketScanner:
         try:
 
             if self.session:
-
                 await self.session.close()
 
         except Exception:
-
             pass
 
 
@@ -461,5 +214,4 @@ class MarketScanner:
             await self.history.close()
 
         except Exception:
-
             pass
