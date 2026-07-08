@@ -14,25 +14,74 @@ def format_number(value):
         if value >= 1_000:
             return f"{value/1_000:.2f}K"
 
-        return f"{value:.4f}"
+        if value >= 1:
+            return f"{value:.4f}"
+
+        return f"{value:.8f}"
 
     except:
         return str(value)
+
+
+def format_percent(value):
+    try:
+        return f"{float(value):.2f}%"
+    except:
+        return "-"
 
 
 def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def make_message(title, symbol, price, change, volume, score):
+def score_level(score):
 
-    return (
-        f"🚨 MAJID ALERT AI\n\n"
+    if score >= 90:
+        return "🔴 بسیار قوی"
+
+    if score >= 80:
+        return "🟠 قوی"
+
+    if score >= 60:
+        return "🟡 متوسط"
+
+    return "🟢 ضعیف"
+
+
+def make_message(
+    title,
+    symbol,
+    price,
+    change,
+    volume,
+    score,
+    resistance=None,
+    support=None,
+    psychological=None,
+):
+
+    message = (
+        f"🚨 MAJID ALERT AI PRO\n\n"
         f"{title}\n\n"
-        f"🪙 ارز: {symbol}\n"
-        f"💰 قیمت: {price}\n"
-        f"📈 تغییر: {change:.2f}%\n"
-        f"📦 حجم: {format_number(volume)}\n"
-        f"⭐ امتیاز: {score}/100\n"
+        f"🪙 ارز : {symbol}\n"
+        f"💰 قیمت : {format_number(price)}\n"
+        f"📈 تغییر : {format_percent(change)}\n"
+        f"📦 حجم : {format_number(volume)}\n"
+    )
+
+    if resistance is not None:
+        message += f"🟥 مقاومت : {format_number(resistance)}\n"
+
+    if support is not None:
+        message += f"🟩 حمایت : {format_number(support)}\n"
+
+    if psychological is not None:
+        message += f"🎯 عدد روانی : {format_number(psychological)}\n"
+
+    message += (
+        f"\n⭐ امتیاز : {score}/100\n"
+        f"🏆 کیفیت سیگنال : {score_level(score)}\n"
         f"🕒 {now()}"
     )
+
+    return message
