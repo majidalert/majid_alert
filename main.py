@@ -14,6 +14,31 @@ telegram = TelegramNotifier(BOT_TOKEN, CHAT_ID)
 sent_alerts = {}
 
 
+def get_alert_key(alert):
+
+    """
+    استخراج کلید یکتا برای هر هشدار
+    """
+
+    for line in alert.split("\n"):
+
+        line = line.strip()
+
+        if "USDT" in line:
+
+            return line
+
+
+        if "ارز" in line:
+
+            return line
+
+
+    # اگر نام ارز پیدا نشد
+    return alert[:80]
+
+
+
 async def run():
 
     print("=" * 50)
@@ -30,51 +55,56 @@ async def run():
 
             if alerts:
 
-                print(f"{len(alerts)} Alert(s) Found")
+                print(
+                    f"{len(alerts)} Alert(s) Found"
+                )
 
 
                 for alert in alerts:
 
+
                     try:
 
-                        # پیدا کردن نام ارز برای جلوگیری از تکرار
-                        key = None
 
-                        for line in alert.split("\n"):
-
-                            if "ارز :" in line:
-
-                                key = line.strip()
-                                break
-
-
-                        if key is None:
-
-                            key = alert.strip()
+                        key = get_alert_key(alert)
 
 
                         now = time.time()
 
 
-                        # اگر قبلاً ارسال شده و زمان آن تمام نشده
+
                         if key in sent_alerts:
 
-                            if now - sent_alerts[key] < ALERT_COOLDOWN:
 
-                                print("Duplicate skipped:", key)
+                            if (
+                                now - sent_alerts[key]
+                                < ALERT_COOLDOWN
+                            ):
+
+                                print(
+                                    "Duplicate skipped:",
+                                    key
+                                )
 
                                 continue
+
 
 
                         sent_alerts[key] = now
 
 
+
                         await telegram.send(alert)
+
 
 
                     except Exception as e:
 
-                        print("Telegram Error:", e)
+                        print(
+                            "Telegram Error:",
+                            e
+                        )
+
 
 
             else:
@@ -82,12 +112,21 @@ async def run():
                 print("No Alert")
 
 
+
         except Exception as e:
 
-            print("Scanner Error:", e)
+            print(
+                "Scanner Error:",
+                e
+            )
 
 
-        await asyncio.sleep(SCAN_INTERVAL)
+
+        await asyncio.sleep(
+            SCAN_INTERVAL
+        )
+
+
 
 
 
@@ -97,24 +136,38 @@ async def shutdown():
 
 
 
+
+
 if __name__ == "__main__":
 
+
     try:
+
 
         asyncio.run(run())
 
 
+
     except KeyboardInterrupt:
 
-        print("Stopped By User")
+
+        print(
+            "Stopped By User"
+        )
+
 
 
     finally:
 
+
         try:
 
-            asyncio.run(shutdown())
+            asyncio.run(
+                shutdown()
+            )
+
 
         except:
+
 
             pass
