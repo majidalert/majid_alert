@@ -34,17 +34,9 @@ class MarketScanner:
             "/v5/market/instruments-info?category=linear"
         ) as response:
 
-            data = await response.json(
-                content_type=None
-            )
+            data = await response.json(content_type=None)
 
-            result = data.get(
-                "result",
-                {}
-            ).get(
-                "list",
-                []
-            )
+            result = data.get("result", {}).get("list", [])
 
             return [
                 coin["symbol"]
@@ -63,17 +55,9 @@ class MarketScanner:
             f"/v5/market/tickers?category=linear&symbol={symbol}"
         ) as response:
 
-            data = await response.json(
-                content_type=None
-            )
+            data = await response.json(content_type=None)
 
-            result = data.get(
-                "result",
-                {}
-            ).get(
-                "list",
-                []
-            )
+            result = data.get("result", {}).get("list", [])
 
             if not result:
                 return None
@@ -82,81 +66,49 @@ class MarketScanner:
 
 
 
-    async def calculate_score(
-        self,
-        symbol,
-        price,
-        volume
-    ):
+    async def calculate_score(self, symbol, price, volume):
 
         score = 0
 
+        high3, low3 = await self.history.get_three_day_levels(symbol)
 
-        high3, low3 = await self.history.get_three_day_levels(
-            symbol
-        )
+        high7, low7 = await self.history.get_week_levels(symbol)
 
-        high7, low7 = await self.history.get_week_levels(
-            symbol
-        )
-
-        avg_volume = await self.history.get_average_volume(
-            symbol
-        )
+        avg_volume = await self.history.get_average_volume(symbol)
 
 
         if low3:
 
-            rise3 = (
-                (price - low3)
-                /
-                low3
-            ) * 100
+            rise3 = ((price - low3) / low3) * 100
 
             if rise3 >= MIN_RISE_FROM_LOW:
-
                 score += 25
 
 
 
         if low7:
 
-            rise7 = (
-                (price - low7)
-                /
-                low7
-            ) * 100
+            rise7 = ((price - low7) / low7) * 100
 
             if rise7 >= MIN_RISE_FROM_LOW:
-
                 score += 25
 
 
 
         if high3:
 
-            distance = (
-                (high3 - price)
-                /
-                high3
-            ) * 100
+            distance = ((high3 - price) / high3) * 100
 
             if distance <= THREE_DAY_RESISTANCE_DISTANCE:
-
                 score += 20
 
 
 
         if high7:
 
-            distance = (
-                (high7 - price)
-                /
-                high7
-            ) * 100
+            distance = ((high7 - price) / high7) * 100
 
             if distance <= WEEKLY_RESISTANCE_DISTANCE:
-
                 score += 20
 
 
@@ -164,7 +116,6 @@ class MarketScanner:
         if avg_volume > 0:
 
             if volume >= avg_volume * VOLUME_MULTIPLIER:
-
                 score += 10
 
 
@@ -192,7 +143,6 @@ class MarketScanner:
 
 
                 if not ticker:
-
                     continue
 
 
@@ -206,7 +156,6 @@ class MarketScanner:
 
 
                 if any(v in (None, "") for v in vals):
-
                     continue
 
 
@@ -217,9 +166,7 @@ class MarketScanner:
                 volume = float(vals[3])
 
 
-
                 if low24 <= 0:
-
                     continue
 
 
@@ -233,7 +180,6 @@ class MarketScanner:
 
 
                 if change < MIN_RISE_FROM_LOW:
-
                     continue
 
 
@@ -243,7 +189,6 @@ class MarketScanner:
                     high3,
                     high7,
                     avg_volume
-
                 ) = await self.calculate_score(
                     symbol,
                     price,
@@ -261,18 +206,15 @@ class MarketScanner:
 
 
                 if daily_distance <= DAILY_RESISTANCE_DISTANCE:
-
                     score += 15
 
 
 
                 if change >= PUMP_PERCENT:
-
                     score += 10
 
 
 
-                # تشخیص پامپ مناسب برای اسکالپ
                 pump_scalp = False
 
                 if (
@@ -280,18 +222,70 @@ class MarketScanner:
                     and avg_volume > 0
                     and volume >= avg_volume * 3
                 ):
-
                     pump_scalp = True
 
 
 
-                if score < MIN_SCORE:
+                short_signal = False
 
+
+                if (
+                    change >= 80
+                    and daily_distance <= DAILY_RESISTANCE_DISTANCE
+                    and avg_volume > 0
+                    and volume >= avg_volume * 3
+                ):
+
+                    short_signal = True
+                    score += 20
+
+
+
+                psychological = False
+
+                round_price = round(price)
+
+                if price > 0:
+
+                    if abs(price - round_price) / price < 0.005:
+
+                        psychological = True
+                        score += 5
+
+
+
+                mss_score = 0
+
+
+                if change >= 50:
+
+                    mss_score += 5
+
+
+                if volume >= avg_volume * 2 if avg_volume > 0 else False:
+
+                    mss_score += 5
+
+
+                score += mss_score
+
+
+
+                if score < MIN_SCORE:
                     continue
 
 
 
-                if pump_scalp:
+                if short_signal and pump_scalp:
+
+                    title = "⚠️ پامپ قوی + بررسی SHORT"
+
+                elif short_signal:
+
+                    title = "🟥 بررسی موقعیت SHORT"
+
+
+                elif pump_scalp:
 
                     title = "🔥 پامپ قوی - اسکالپ"
 
@@ -314,7 +308,6 @@ class MarketScanner:
                         title = "🚀 پامپ"
 
 
-
                 elif high3:
 
                     distance_three = (
@@ -333,7 +326,6 @@ class MarketScanner:
                         title = "🚀 پامپ"
 
 
-
                 elif daily_distance <= DAILY_RESISTANCE_DISTANCE:
 
                     title = "🟨 مقاومت روزانه"
@@ -342,6 +334,12 @@ class MarketScanner:
                 else:
 
                     title = "🚀 پامپ"
+
+
+
+                if psychological:
+
+                    title += " 🔢"
 
 
 
@@ -374,6 +372,10 @@ class MarketScanner:
                         f"{avg_volume:,.0f}"
                     )
 
+
+                message += (
+                    f"\n🧠 MSS Score: {mss_score}"
+                )
 
 
                 alerts.append(message)
