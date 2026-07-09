@@ -37,11 +37,18 @@ class MarketScanner:
 
             result = data.get("result", {}).get("list", [])
 
-            return [
+            symbols = [
                 coin["symbol"]
                 for coin in result
                 if coin.get("quoteCoin") == "USDT"
             ]
+
+            print(
+                "Total USDT Symbols:",
+                len(symbols)
+            )
+
+            return symbols
 
 
     async def get_ticker(self, symbol):
@@ -126,10 +133,14 @@ class MarketScanner:
 
         symbols = await self.get_symbols()
 
+        checked = 0
+
 
         for symbol in symbols:
 
             try:
+
+                checked += 1
 
                 ticker = await self.get_ticker(symbol)
 
@@ -199,6 +210,7 @@ class MarketScanner:
 
                 pump_scalp = False
 
+
                 if (
                     change >= 50
                     and avg_volume > 0
@@ -235,6 +247,7 @@ class MarketScanner:
 
                 mss_score = 0
 
+
                 if change >= 50:
                     mss_score += 5
 
@@ -246,6 +259,13 @@ class MarketScanner:
                 score += mss_score
 
                 score = min(score, 100)
+
+
+                print(
+                    f"SCAN {symbol} | "
+                    f"Growth: {change:.2f}% | "
+                    f"Score: {score}"
+                )
 
 
                 if score < MIN_SCORE:
@@ -363,6 +383,14 @@ class MarketScanner:
 
 
             await asyncio.sleep(0.05)
+
+
+        print(
+            "Coins Checked:",
+            checked,
+            "| Alerts:",
+            len(alerts)
+        )
 
 
         return alerts
