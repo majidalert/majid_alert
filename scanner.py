@@ -113,12 +113,6 @@ class MarketScanner:
                 score += 20
 
 
-        if avg_volume > 0:
-
-            if volume >= avg_volume * VOLUME_MULTIPLIER:
-                score += 10
-
-
         return (
             score,
             high3,
@@ -177,8 +171,11 @@ class MarketScanner:
                 ) * 100
 
 
-                if change < MIN_RISE_FROM_LOW:
-                    continue
+                drop = (
+                    (high24 - price)
+                    /
+                    high24
+                ) * 100
 
 
                 (
@@ -191,6 +188,43 @@ class MarketScanner:
                     price,
                     volume
                 )
+                # ----------------------------
+# امتیاز حرکت بازار
+# ----------------------------
+
+                if change >= 10:
+                    score += 5
+
+                if change >= 20:
+                    score += 10
+
+                if change >= 50:
+                    score += 15
+
+                if change >= 100:
+                    score += 20
+
+
+                if drop >= 10:
+                    score += 5
+
+                if drop >= 20:
+                    score += 10
+
+                if drop >= 40:
+                    score += 20
+
+
+                if avg_volume > 0:
+
+                    if volume >= avg_volume * 2:
+                        score += 10
+
+                    if volume >= avg_volume * 3:
+                        score += 15
+
+                    if volume >= avg_volume * 5:
+                        score += 20
 
 
                 daily_distance = (
@@ -204,33 +238,53 @@ class MarketScanner:
                     score += 15
 
 
-                if change >= PUMP_PERCENT:
-                    score += 10
+                pump_scalp = (
+
+                    change >= 20
+
+                    and
+
+                    avg_volume > 0
+
+                    and
+
+                    volume >= avg_volume * 2
+
+                )
 
 
-                pump_scalp = False
+                dump_signal = (
+
+                    drop >= 20
+
+                    and
+
+                    avg_volume > 0
+
+                    and
+
+                    volume >= avg_volume * 2
+
+                )
 
 
-                if (
-                    change >= 50
-                    and avg_volume > 0
-                    and volume >= avg_volume * 3
-                ):
-                    pump_scalp = True
+                short_signal = (
 
-
-                short_signal = False
-
-
-                if (
                     change >= 80
-                    and daily_distance <= DAILY_RESISTANCE_DISTANCE
-                    and avg_volume > 0
-                    and volume >= avg_volume * 3
-                ):
 
-                    short_signal = True
-                    score += 20
+                    and
+
+                    daily_distance <= DAILY_RESISTANCE_DISTANCE
+
+                    and
+
+                    avg_volume > 0
+
+                    and
+
+                    volume >= avg_volume * 3
+
+                )
 
 
                 psychological = False
@@ -245,44 +299,34 @@ class MarketScanner:
                         score += 5
 
 
-                mss_score = 0
-
-
-                if change >= 50:
-                    mss_score += 5
-
-
-                if avg_volume > 0 and volume >= avg_volume * 2:
-                    mss_score += 5
-
-
-                score += mss_score
-
                 score = min(score, 100)
 
 
                 print(
                     f"SCAN {symbol} | "
                     f"Growth: {change:.2f}% | "
+                    f"Drop: {drop:.2f}% | "
                     f"Score: {score}"
                 )
 
 
                 if score < MIN_SCORE:
                     continue
+                                    if short_signal and pump_scalp:
 
-
-                if short_signal and pump_scalp:
-
-                    title = "⚠️ پامپ قوی + بررسی SHORT"
+                    title = "⚠️ پامپ هیجانی + بررسی SHORT"
 
                 elif short_signal:
 
-                    title = "🟥 بررسی موقعیت SHORT"
+                    title = "🟥 بررسی SHORT"
 
                 elif pump_scalp:
 
-                    title = "🔥 پامپ قوی - اسکالپ"
+                    title = "🚀 پامپ هیجانی"
+
+                elif dump_signal:
+
+                    title = "📉 دامپ هیجانی"
 
                 elif high7:
 
@@ -293,9 +337,12 @@ class MarketScanner:
                     ) * 100
 
                     if distance_week <= WEEKLY_RESISTANCE_DISTANCE:
+
                         title = "🟥 مقاومت هفتگی"
+
                     else:
-                        title = "🚀 پامپ"
+
+                        title = "🚀 حرکت صعودی"
 
                 elif high3:
 
@@ -306,17 +353,16 @@ class MarketScanner:
                     ) * 100
 
                     if distance_three <= THREE_DAY_RESISTANCE_DISTANCE:
+
                         title = "🟧 مقاومت ۳ روزه"
+
                     else:
-                        title = "🚀 پامپ"
 
-                elif daily_distance <= DAILY_RESISTANCE_DISTANCE:
-
-                    title = "🟨 مقاومت روزانه"
+                        title = "🚀 حرکت صعودی"
 
                 else:
 
-                    title = "🚀 پامپ"
+                    title = "📊 حرکت غیرعادی"
 
 
                 if psychological:
@@ -394,9 +440,7 @@ class MarketScanner:
 
 
         return alerts
-
-
-    async def close(self):
+            async def close(self):
 
         try:
 
