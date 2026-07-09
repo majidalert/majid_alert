@@ -41,6 +41,7 @@ class MarketScanner:
             ]
 
 
+
     async def get_ticker(self, symbol):
 
         session = await self.get_session()
@@ -58,6 +59,7 @@ class MarketScanner:
                 return None
 
             return result[0]
+
 
 
     async def get_high(self, symbol, interval):
@@ -83,23 +85,25 @@ class MarketScanner:
             if not candles:
                 return None
 
-            highs = [
+            return max(
                 float(candle[2])
                 for candle in candles
-            ]
+            )
 
-            return max(highs)
 
 
     async def resistance_check(self, symbol, price):
 
         resistance = {}
 
-        for name, interval in [
-            ("4H", "240"),
-            ("1D", "D"),
-            ("1W", "W")
-        ]:
+        settings = [
+            ("4H", "240", FOUR_HOUR_RESISTANCE_DISTANCE),
+            ("1D", "D", DAILY_RESISTANCE_DISTANCE),
+            ("1W", "W", WEEKLY_RESISTANCE_DISTANCE)
+        ]
+
+
+        for name, interval, distance_limit in settings:
 
             try:
 
@@ -107,6 +111,7 @@ class MarketScanner:
                     symbol,
                     interval
                 )
+
 
                 if high:
 
@@ -116,13 +121,20 @@ class MarketScanner:
                         high
                     ) * 100
 
-                    if distance <= DAILY_RESISTANCE_DISTANCE:
+
+                    if 0 <= distance <= distance_limit:
 
                         resistance[name] = high
 
-            except:
 
-                continue
+            except Exception as e:
+
+                print(
+                    "Resistance Error:",
+                    symbol,
+                    name,
+                    e
+                )
 
 
         return resistance
@@ -141,6 +153,7 @@ class MarketScanner:
             try:
 
                 ticker = await self.get_ticker(symbol)
+
 
                 if ticker is None:
                     continue
@@ -174,25 +187,26 @@ class MarketScanner:
                 ) * 100
 
 
-                if change < MIN_RISE_FROM_LOW:
-                    continue
-
 
                 score = 0
 
 
                 if change >= MIN_RISE_FROM_LOW:
+
                     score += 30
 
 
                 if change >= PUMP_PERCENT:
+
                     score += 20
+
 
 
                 resistance = await self.resistance_check(
                     symbol,
                     last_price
                 )
+
 
 
                 if resistance:
@@ -207,14 +221,16 @@ class MarketScanner:
 
                         alerts.append(
                             make_message(
-                                "⚠️ نزدیک مقاومت تایم فریم",
+                                "⚠️ نزدیک مقاومت 4H / 1D / 1W",
                                 symbol,
                                 last_price,
                                 change,
                                 volume,
-                                score
+                                score,
+                                resistance=resistance
                             )
                         )
+
 
 
                 distance = (
@@ -224,9 +240,11 @@ class MarketScanner:
                 ) * 100
 
 
+
                 if distance <= DAILY_RESISTANCE_DISTANCE:
 
                     score += 20
+
 
 
                 if (
@@ -259,6 +277,7 @@ class MarketScanner:
 
 
             await asyncio.sleep(0.05)
+
 
 
         return alerts
