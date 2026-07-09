@@ -64,53 +64,54 @@ class MarketScanner:
                 if ticker is None:
                     continue
 
-                if (
-                    ticker.get("lastPrice") is None
-                    or ticker.get("highPrice24h") is None
-                    or ticker.get("lowPrice24h") is None
-                    or ticker.get("turnover24h") is None
-                ):
+                vals = [
+                    ticker.get("lastPrice"),
+                    ticker.get("highPrice24h"),
+                    ticker.get("lowPrice24h"),
+                    ticker.get("turnover24h"),
+                ]
+
+                if any(v in (None, "") for v in vals):
                     continue
 
-                last_price = float(ticker["lastPrice"])
-                high_price = float(ticker["highPrice24h"])
-                low_price = float(ticker["lowPrice24h"])
-                volume = float(ticker["turnover24h"])
+                last_price = float(vals[0])
+                high_price = float(vals[1])
+                low_price = float(vals[2])
+                volume = float(vals[3])
 
                 if low_price <= 0:
                     continue
 
                 change = ((last_price - low_price) / low_price) * 100
 
-                score = 40 if (
-                    change >= PUMP_PERCENT
-                    or change <= DUMP_PERCENT
-                ) else 0
+                # فیلتر اصلی استراتژی مجید
+                if change < MIN_RISE_FROM_LOW:
+                    continue
+
+                score = 0
+
+                if change >= MIN_RISE_FROM_LOW:
+                    score += 30
+
+                if change >= PUMP_PERCENT:
+                    score += 20
+
+                distance_to_high = (
+                    (high_price - last_price)
+                    / high_price
+                ) * 100
+
+                if distance_to_high <= DAILY_RESISTANCE_DISTANCE:
+                    score += 20
 
                 if (
-                    change >= PUMP_PERCENT
+                    score >= MIN_SCORE
                     and self.state.can_send(symbol, "PUMP")
                 ):
 
                     alerts.append(
                         make_message(
                             "🚀 پامپ",
-                            symbol,
-                            last_price,
-                            change,
-                            volume,
-                            score,
-                        )
-                    )
-
-                elif (
-                    change <= DUMP_PERCENT
-                    and self.state.can_send(symbol, "DUMP")
-                ):
-
-                    alerts.append(
-                        make_message(
-                            "📉 دامپ",
                             symbol,
                             last_price,
                             change,
