@@ -10,16 +10,23 @@ class MarketScanner:
 
         try:
 
-            data = requests.get(self.BINANCE_URL, timeout=10).json()
+            response = requests.get(self.BINANCE_URL, timeout=10)
+            response.raise_for_status()
+
+            data = response.json()
+
+            if not isinstance(data, list):
+                print("Binance API Error:", data)
+                return alerts
 
             for coin in data:
 
-                symbol = coin["symbol"]
+                symbol = coin.get("symbol", "")
 
                 if not symbol.endswith("USDT"):
                     continue
 
-                change = float(coin["priceChangePercent"])
+                change = float(coin.get("priceChangePercent", 0))
 
                 if change >= 10:
 
@@ -38,6 +45,6 @@ class MarketScanner:
                     )
 
         except Exception as e:
-            print(e)
+            print("Scanner Error:", e)
 
         return alerts
