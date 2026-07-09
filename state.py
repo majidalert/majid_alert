@@ -13,28 +13,18 @@ class AlertState:
 
 
 
-    def _key(self, symbol, alert_type=None):
+    def _key(self, symbol):
 
-        symbol = str(symbol).upper().strip()
-
-        if alert_type:
-
-            alert_type = str(alert_type).strip()
-
-            return f"{symbol}_{alert_type}"
-
-        return symbol
+        return str(symbol).upper().strip()
 
 
 
-    def can_send(self, symbol, alert_type=None):
+    def can_send(self, symbol):
 
-        key = self._key(
-            symbol,
-            alert_type
-        )
+        key = self._key(symbol)
 
         now = time.time()
+
 
 
         if key not in self.cache:
@@ -55,16 +45,14 @@ class AlertState:
             return True
 
 
+
         return False
 
 
 
-    def update(self, symbol, alert_type=None):
+    def update(self, symbol):
 
-        key = self._key(
-            symbol,
-            alert_type
-        )
+        key = self._key(symbol)
 
         self.cache[key] = time.time()
 
@@ -76,12 +64,9 @@ class AlertState:
 
 
 
-    def remove(self, symbol, alert_type=None):
+    def remove(self, symbol):
 
-        key = self._key(
-            symbol,
-            alert_type
-        )
+        key = self._key(symbol)
 
         if key in self.cache:
 
@@ -89,23 +74,17 @@ class AlertState:
 
 
 
-    def last_alert(self, symbol, alert_type=None):
+    def last_alert(self, symbol):
 
-        key = self._key(
-            symbol,
-            alert_type
-        )
+        key = self._key(symbol)
 
         return self.cache.get(key)
 
 
 
-    def seconds_remaining(self, symbol, alert_type=None):
+    def seconds_remaining(self, symbol):
 
-        key = self._key(
-            symbol,
-            alert_type
-        )
+        key = self._key(symbol)
 
 
         if key not in self.cache:
@@ -113,14 +92,19 @@ class AlertState:
             return 0
 
 
+
         remain = (
+
             self.cooldown
+
             -
+
             (
                 time.time()
                 -
                 self.cache[key]
             )
+
         )
 
 
