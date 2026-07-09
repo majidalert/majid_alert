@@ -41,7 +41,6 @@ class MarketScanner:
             ]
 
 
-
     async def get_ticker(self, symbol):
 
         session = await self.get_session()
@@ -59,7 +58,6 @@ class MarketScanner:
                 return None
 
             return result[0]
-
 
 
     async def get_high(self, symbol, interval):
@@ -91,19 +89,30 @@ class MarketScanner:
             )
 
 
-
     async def resistance_check(self, symbol, price):
 
         resistance = {}
 
-        settings = [
-            ("4H", "240", FOUR_HOUR_RESISTANCE_DISTANCE),
-            ("1D", "D", DAILY_RESISTANCE_DISTANCE),
-            ("1W", "W", WEEKLY_RESISTANCE_DISTANCE)
+        levels = [
+            (
+                "4H",
+                "240",
+                FOUR_HOUR_RESISTANCE_DISTANCE
+            ),
+            (
+                "1D",
+                "D",
+                DAILY_RESISTANCE_DISTANCE
+            ),
+            (
+                "1W",
+                "W",
+                WEEKLY_RESISTANCE_DISTANCE
+            )
         ]
 
 
-        for name, interval, distance_limit in settings:
+        for name, interval, limit in levels:
 
             try:
 
@@ -122,7 +131,7 @@ class MarketScanner:
                     ) * 100
 
 
-                    if 0 <= distance <= distance_limit:
+                    if 0 <= distance <= limit:
 
                         resistance[name] = high
 
@@ -132,7 +141,6 @@ class MarketScanner:
                 print(
                     "Resistance Error:",
                     symbol,
-                    name,
                     e
                 )
 
@@ -153,7 +161,6 @@ class MarketScanner:
             try:
 
                 ticker = await self.get_ticker(symbol)
-
 
                 if ticker is None:
                     continue
@@ -187,17 +194,14 @@ class MarketScanner:
                 ) * 100
 
 
-
                 score = 0
 
 
                 if change >= MIN_RISE_FROM_LOW:
-
                     score += 30
 
 
                 if change >= PUMP_PERCENT:
-
                     score += 20
 
 
@@ -208,37 +212,17 @@ class MarketScanner:
                 )
 
 
-
                 if resistance:
 
                     score += 30
 
 
-                    if self.state.can_send(
-                        symbol,
-                        "RESISTANCE"
-                    ):
-
-                        alerts.append(
-                            make_message(
-                                "⚠️ نزدیک مقاومت 4H / 1D / 1W",
-                                symbol,
-                                last_price,
-                                change,
-                                volume,
-                                score,
-                                resistance=resistance
-                            )
-                        )
-
-
 
                 distance = (
-                    (high_price-last_price)
+                    (high_price - last_price)
                     /
                     high_price
                 ) * 100
-
 
 
                 if distance <= DAILY_RESISTANCE_DISTANCE:
@@ -252,18 +236,31 @@ class MarketScanner:
                     and
                     self.state.can_send(
                         symbol,
-                        "PUMP"
+                        "ALERT"
                     )
                 ):
 
+
+                    title = "🚀 پامپ قوی"
+
+
+                    if resistance:
+
+                        title = (
+                            "⚠️ نزدیک مقاومت مهم "
+                            "(4H / 1D / 1W)"
+                        )
+
+
                     alerts.append(
                         make_message(
-                            "🚀 پامپ",
+                            title,
                             symbol,
                             last_price,
                             change,
                             volume,
-                            score
+                            score,
+                            resistance=resistance
                         )
                     )
 
@@ -277,7 +274,6 @@ class MarketScanner:
 
 
             await asyncio.sleep(0.05)
-
 
 
         return alerts
