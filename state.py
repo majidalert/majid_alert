@@ -12,13 +12,22 @@ class AlertState:
         self.cache = {}
 
 
-    def _key(self, symbol, alert_type):
 
-        return f"{symbol}_{alert_type}"
+    def _key(self, symbol, alert_type=None):
+
+        symbol = str(symbol).upper().strip()
+
+        if alert_type:
+
+            alert_type = str(alert_type).strip()
+
+            return f"{symbol}_{alert_type}"
+
+        return symbol
 
 
 
-    def can_send(self, symbol, alert_type):
+    def can_send(self, symbol, alert_type=None):
 
         key = self._key(
             symbol,
@@ -50,7 +59,7 @@ class AlertState:
 
 
 
-    def update(self, symbol, alert_type):
+    def update(self, symbol, alert_type=None):
 
         key = self._key(
             symbol,
@@ -67,13 +76,12 @@ class AlertState:
 
 
 
-    def remove(self, symbol, alert_type):
+    def remove(self, symbol, alert_type=None):
 
         key = self._key(
             symbol,
             alert_type
         )
-
 
         if key in self.cache:
 
@@ -81,7 +89,7 @@ class AlertState:
 
 
 
-    def last_alert(self, symbol, alert_type):
+    def last_alert(self, symbol, alert_type=None):
 
         key = self._key(
             symbol,
@@ -92,7 +100,7 @@ class AlertState:
 
 
 
-    def seconds_remaining(self, symbol, alert_type):
+    def seconds_remaining(self, symbol, alert_type=None):
 
         key = self._key(
             symbol,
