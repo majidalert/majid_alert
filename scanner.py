@@ -19,7 +19,6 @@ class MarketScanner:
     async def get_session(self):
 
         if self.session is None:
-
             self.session = aiohttp.ClientSession()
 
         return self.session
@@ -39,22 +38,19 @@ class MarketScanner:
                 content_type=None
             )
 
+            result = data.get(
+                "result",
+                {}
+            ).get(
+                "list",
+                []
+            )
+
+
             return [
-
                 coin["symbol"]
-
-                for coin in data.get(
-                    "result",
-                    {}
-                ).get(
-                    "list",
-                    []
-                )
-
-                if coin.get(
-                    "quoteCoin"
-                ) == "USDT"
-
+                for coin in result
+                if coin.get("quoteCoin") == "USDT"
             ]
 
 
@@ -72,6 +68,7 @@ class MarketScanner:
                 content_type=None
             )
 
+
             result = data.get(
                 "result",
                 {}
@@ -82,7 +79,6 @@ class MarketScanner:
 
 
             if not result:
-
                 return None
 
 
@@ -93,11 +89,12 @@ class MarketScanner:
     async def calculate_score(
         self,
         symbol,
-        last_price,
+        price,
         volume
     ):
 
         score = 0
+
 
         high3, low3 = await self.history.get_three_day_levels(
             symbol
@@ -112,10 +109,11 @@ class MarketScanner:
         )
 
 
+
         if low3:
 
             rise3 = (
-                (last_price - low3)
+                (price - low3)
                 /
                 low3
             ) * 100
@@ -130,7 +128,7 @@ class MarketScanner:
         if low7:
 
             rise7 = (
-                (last_price - low7)
+                (price - low7)
                 /
                 low7
             ) * 100
@@ -145,11 +143,9 @@ class MarketScanner:
         if high3:
 
             distance = (
-
-                (high3 - last_price)
+                (high3 - price)
                 /
                 high3
-
             ) * 100
 
 
@@ -162,11 +158,9 @@ class MarketScanner:
         if high7:
 
             distance = (
-
-                (high7 - last_price)
+                (high7 - price)
                 /
                 high7
-
             ) * 100
 
 
@@ -197,17 +191,18 @@ class MarketScanner:
 
         alerts = []
 
+
         symbols = await self.get_symbols()
 
 
 
         for symbol in symbols:
 
+
             try:
 
-                ticker = await self.get_ticker(
-                    symbol
-                )
+                ticker = await self.get_ticker(symbol)
+
 
 
                 if not ticker:
@@ -216,15 +211,15 @@ class MarketScanner:
 
 
 
-                last_price = float(
+                price = float(
                     ticker["lastPrice"]
                 )
 
-                high_price = float(
+                high24 = float(
                     ticker["highPrice24h"]
                 )
 
-                low_price = float(
+                low24 = float(
                     ticker["lowPrice24h"]
                 )
 
@@ -234,7 +229,7 @@ class MarketScanner:
 
 
 
-                if low_price <= 0:
+                if low24 <= 0:
 
                     continue
 
@@ -242,9 +237,9 @@ class MarketScanner:
 
                 change = (
 
-                    (last_price - low_price)
+                    (price - low24)
                     /
-                    low_price
+                    low24
 
                 ) * 100
 
@@ -256,9 +251,15 @@ class MarketScanner:
 
 
 
-                score, high3, high7, avg_volume = await self.calculate_score(
+                (
+                    score,
+                    high3,
+                    high7,
+                    avg_volume
+
+                ) = await self.calculate_score(
                     symbol,
-                    last_price,
+                    price,
                     volume
                 )
 
@@ -266,9 +267,9 @@ class MarketScanner:
 
                 daily_distance = (
 
-                    (high_price - last_price)
+                    (high24 - price)
                     /
-                    high_price
+                    high24
 
                 ) * 100
 
@@ -294,38 +295,41 @@ class MarketScanner:
 
                 if high7:
 
-                    resistance_type = "🟥 مقاومت هفتگی"
+                    title = "🟥 مقاومت هفتگی"
 
 
                 elif high3:
 
-                    resistance_type = "🟧 مقاومت ۳ روزه"
+                    title = "🟧 مقاومت ۳ روزه"
 
 
                 elif daily_distance <= DAILY_RESISTANCE_DISTANCE:
 
-                    resistance_type = "🟨 مقاومت روزانه"
+                    title = "🟨 مقاومت روزانه"
 
 
                 else:
 
-                    resistance_type = "🚀 پامپ"
+                    title = "🚀 پامپ"
 
 
 
-                if not self.state.can_send(
-                    symbol,
-                    resistance_type
-                ):
+                # جلوگیری از ارسال تکراری
+                if not self.state.can_send(symbol):
+
+                    print(
+                        "Duplicate blocked:",
+                        symbol
+                    )
 
                     continue
 
 
 
                 message = make_message(
-                    resistance_type,
+                    title,
                     symbol,
-                    last_price,
+                    price,
                     change,
                     volume,
                     score
@@ -342,9 +346,7 @@ class MarketScanner:
 
 
 
-                alerts.append(
-                    message
-                )
+                alerts.append(message)
 
 
 
@@ -357,9 +359,7 @@ class MarketScanner:
 
 
 
-            await asyncio.sleep(
-                0.05
-            )
+            await asyncio.sleep(0.05)
 
 
 
