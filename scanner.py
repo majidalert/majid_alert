@@ -181,9 +181,7 @@ class MarketScanner:
 
         alerts = []
 
-
         symbols = await self.get_symbols()
-
 
 
         for symbol in symbols:
@@ -198,6 +196,7 @@ class MarketScanner:
                     continue
 
 
+
                 vals = [
                     ticker.get("lastPrice"),
                     ticker.get("highPrice24h"),
@@ -209,6 +208,7 @@ class MarketScanner:
                 if any(v in (None, "") for v in vals):
 
                     continue
+
 
 
                 price = float(vals[0])
@@ -225,11 +225,9 @@ class MarketScanner:
 
 
                 change = (
-
                     (price - low24)
                     /
                     low24
-
                 ) * 100
 
 
@@ -255,11 +253,9 @@ class MarketScanner:
 
 
                 daily_distance = (
-
                     (high24 - price)
                     /
                     high24
-
                 ) * 100
 
 
@@ -276,17 +272,36 @@ class MarketScanner:
 
 
 
+                # تشخیص پامپ مناسب برای اسکالپ
+                pump_scalp = False
+
+                if (
+                    change >= 50
+                    and avg_volume > 0
+                    and volume >= avg_volume * 3
+                ):
+
+                    pump_scalp = True
+
+
+
                 if score < MIN_SCORE:
 
                     continue
 
 
 
-                if high7:
+                if pump_scalp:
+
+                    title = "🔥 پامپ قوی - اسکالپ"
+
+
+                elif high7:
 
                     distance_week = (
                         (high7 - price)
-                        / high7
+                        /
+                        high7
                     ) * 100
 
 
@@ -304,7 +319,8 @@ class MarketScanner:
 
                     distance_three = (
                         (high3 - price)
-                        / high3
+                        /
+                        high3
                     ) * 100
 
 
@@ -384,15 +400,21 @@ class MarketScanner:
     async def close(self):
 
         try:
+
             if self.session:
+
                 await self.session.close()
 
         except Exception:
+
             pass
 
 
+
         try:
+
             await self.history.close()
 
         except Exception:
+
             pass
