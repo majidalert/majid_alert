@@ -1,6 +1,7 @@
 from datetime import datetime
 
 
+
 def format_number(value):
 
     try:
@@ -28,6 +29,7 @@ def format_number(value):
 
 
 
+
 def format_percent(value):
 
     try:
@@ -40,6 +42,7 @@ def format_percent(value):
 
 
 
+
 def now():
 
     return datetime.now().strftime(
@@ -48,18 +51,26 @@ def now():
 
 
 
+
 def score_level(score):
 
     if score >= 90:
+
         return "🔴 بسیار قوی"
 
+
     if score >= 80:
+
         return "🟠 قوی"
 
+
     if score >= 60:
+
         return "🟡 متوسط"
 
+
     return "🟢 ضعیف"
+
 
 
 
@@ -73,6 +84,7 @@ def make_message(
     resistance=None,
     support=None,
     psychological=None,
+    mss_reason=None,
 ):
 
 
@@ -95,34 +107,55 @@ def make_message(
     )
 
 
+
     if resistance is not None:
 
         message += (
+
             f"🟥 مقاومت : "
             f"{format_number(resistance)}\n"
+
         )
+
 
 
     if support is not None:
 
         message += (
+
             f"🟩 حمایت : "
             f"{format_number(support)}\n"
+
         )
+
 
 
     if psychological is not None:
 
         message += (
+
             f"🎯 عدد روانی : "
             f"{format_number(psychological)}\n"
+
+        )
+
+
+
+    if mss_reason:
+
+        message += (
+
+            "\n📌 دلایل MSS:\n"
+
+            f"{mss_reason}\n"
+
         )
 
 
 
     message += (
 
-        f"\n⭐ امتیاز : {score}/100\n"
+        f"\n⭐ MSS Score : {score}/100\n"
 
         f"🏆 کیفیت سیگنال : {score_level(score)}\n"
 
