@@ -1,7 +1,6 @@
 from datetime import datetime
 
 
-
 def format_number(value):
 
     try:
@@ -29,7 +28,6 @@ def format_number(value):
 
 
 
-
 def format_percent(value):
 
     try:
@@ -42,7 +40,6 @@ def format_percent(value):
 
 
 
-
 def now():
 
     return datetime.now().strftime(
@@ -51,26 +48,18 @@ def now():
 
 
 
-
 def score_level(score):
 
     if score >= 90:
-
         return "🔴 بسیار قوی"
 
-
     if score >= 80:
-
         return "🟠 قوی"
 
-
     if score >= 60:
-
         return "🟡 متوسط"
 
-
     return "🟢 ضعیف"
-
 
 
 
@@ -107,16 +96,25 @@ def make_message(
     )
 
 
-
     if resistance is not None:
 
-        message += (
+        if isinstance(resistance, dict):
 
-            f"🟥 مقاومت : "
-            f"{format_number(resistance)}\n"
+            message += "\n🟥 مقاومت‌های مهم:\n"
 
-        )
+            for tf, value in resistance.items():
 
+                message += (
+                    f"   🔹 {tf} : "
+                    f"{format_number(value)}\n"
+                )
+
+        else:
+
+            message += (
+                f"🟥 مقاومت : "
+                f"{format_number(resistance)}\n"
+            )
 
 
     if support is not None:
@@ -129,7 +127,6 @@ def make_message(
         )
 
 
-
     if psychological is not None:
 
         message += (
@@ -138,7 +135,6 @@ def make_message(
             f"{format_number(psychological)}\n"
 
         )
-
 
 
     if mss_reason:
@@ -150,7 +146,6 @@ def make_message(
             f"{mss_reason}\n"
 
         )
-
 
 
     message += (
