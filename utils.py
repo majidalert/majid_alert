@@ -21,23 +21,18 @@ def format_number(value):
 
         return f"{value:.8f}"
 
-
     except:
 
         return str(value)
 
 
-
 def format_percent(value):
 
     try:
-
         return f"{float(value):.2f}%"
 
     except:
-
         return "-"
-
 
 
 def now():
@@ -47,8 +42,10 @@ def now():
     )
 
 
-
 def score_level(score):
+
+    if score >= 95:
+        return "🔥 بسیار عالی"
 
     if score >= 90:
         return "🔴 بسیار قوی"
@@ -60,7 +57,6 @@ def score_level(score):
         return "🟡 متوسط"
 
     return "🟢 ضعیف"
-
 
 
 def make_message(
@@ -76,10 +72,9 @@ def make_message(
     mss_reason=None,
 ):
 
-
     message = (
 
-        f"🚨 MAJID ALERT AI PRO\n\n"
+        "🚨 MAJID ALERT AI PRO\n\n"
 
         f"{title}\n\n"
 
@@ -95,58 +90,76 @@ def make_message(
 
     )
 
-
-    if resistance is not None:
+    if resistance:
 
         if isinstance(resistance, dict):
 
-            message += "\n🟥 مقاومت‌های مهم:\n"
+            message += "\n🟥 مقاومت‌های مهم\n"
 
             for tf, value in resistance.items():
 
                 message += (
-                    f"   🔹 {tf} : "
+                    f"🔸 {tf} : "
                     f"{format_number(value)}\n"
                 )
 
         else:
 
             message += (
-                f"🟥 مقاومت : "
+                f"\n🟥 مقاومت : "
                 f"{format_number(resistance)}\n"
             )
 
-
-    if support is not None:
+    if support:
 
         message += (
-
-            f"🟩 حمایت : "
+            f"\n🟩 حمایت : "
             f"{format_number(support)}\n"
-
         )
 
-
-    if psychological is not None:
+    if psychological:
 
         message += (
-
-            f"🎯 عدد روانی : "
+            f"\n🎯 عدد روانی : "
             f"{format_number(psychological)}\n"
-
         )
 
+    if "پامپ" in title:
+
+        message += (
+            "\n🚀 احتمال ادامه روند صعودی وجود دارد.\n"
+        )
+
+    if "دامپ" in title:
+
+        message += (
+            "\n📉 احتمال ادامه فشار فروش وجود دارد.\n"
+        )
+
+    if "هیجان" in title:
+
+        message += (
+            "\n🔥 ورود هیجانی معامله‌گران مشاهده شده است.\n"
+        )
+
+    if "حرکت غیرعادی" in title:
+
+        message += (
+            "\n⚡ نوسان غیرعادی در بازار شناسایی شد.\n"
+        )
+
+    if "حجم غیرعادی" in title:
+
+        message += (
+            "\n📦 حجم معاملات به شکل غیرمعمول افزایش یافته است.\n"
+        )
 
     if mss_reason:
 
         message += (
-
-            "\n📌 دلایل MSS:\n"
-
+            "\n📌 دلایل سیگنال:\n"
             f"{mss_reason}\n"
-
         )
-
 
     message += (
 
@@ -157,6 +170,5 @@ def make_message(
         f"🕒 {now()}"
 
     )
-
 
     return message
