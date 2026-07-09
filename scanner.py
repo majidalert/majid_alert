@@ -46,7 +46,6 @@ class MarketScanner:
                 []
             )
 
-
             return [
                 coin["symbol"]
                 for coin in result
@@ -68,7 +67,6 @@ class MarketScanner:
                 content_type=None
             )
 
-
             result = data.get(
                 "result",
                 {}
@@ -77,10 +75,8 @@ class MarketScanner:
                 []
             )
 
-
             if not result:
                 return None
-
 
             return result[0]
 
@@ -109,7 +105,6 @@ class MarketScanner:
         )
 
 
-
         if low3:
 
             rise3 = (
@@ -117,7 +112,6 @@ class MarketScanner:
                 /
                 low3
             ) * 100
-
 
             if rise3 >= MIN_RISE_FROM_LOW:
 
@@ -133,7 +127,6 @@ class MarketScanner:
                 low7
             ) * 100
 
-
             if rise7 >= MIN_RISE_FROM_LOW:
 
                 score += 25
@@ -147,7 +140,6 @@ class MarketScanner:
                 /
                 high3
             ) * 100
-
 
             if distance <= THREE_DAY_RESISTANCE_DISTANCE:
 
@@ -163,7 +155,6 @@ class MarketScanner:
                 high7
             ) * 100
 
-
             if distance <= WEEKLY_RESISTANCE_DISTANCE:
 
                 score += 20
@@ -175,7 +166,6 @@ class MarketScanner:
             if volume >= avg_volume * VOLUME_MULTIPLIER:
 
                 score += 10
-
 
 
         return (
@@ -198,11 +188,9 @@ class MarketScanner:
 
         for symbol in symbols:
 
-
             try:
 
                 ticker = await self.get_ticker(symbol)
-
 
 
                 if not ticker:
@@ -210,22 +198,23 @@ class MarketScanner:
                     continue
 
 
+                vals = [
+                    ticker.get("lastPrice"),
+                    ticker.get("highPrice24h"),
+                    ticker.get("lowPrice24h"),
+                    ticker.get("turnover24h"),
+                ]
 
-                price = float(
-                    ticker["lastPrice"]
-                )
 
-                high24 = float(
-                    ticker["highPrice24h"]
-                )
+                if any(v in (None, "") for v in vals):
 
-                low24 = float(
-                    ticker["lowPrice24h"]
-                )
+                    continue
 
-                volume = float(
-                    ticker["turnover24h"]
-                )
+
+                price = float(vals[0])
+                high24 = float(vals[1])
+                low24 = float(vals[2])
+                volume = float(vals[3])
 
 
 
@@ -295,12 +284,38 @@ class MarketScanner:
 
                 if high7:
 
-                    title = "🟥 مقاومت هفتگی"
+                    distance_week = (
+                        (high7 - price)
+                        / high7
+                    ) * 100
+
+
+                    if distance_week <= WEEKLY_RESISTANCE_DISTANCE:
+
+                        title = "🟥 مقاومت هفتگی"
+
+                    else:
+
+                        title = "🚀 پامپ"
+
 
 
                 elif high3:
 
-                    title = "🟧 مقاومت ۳ روزه"
+                    distance_three = (
+                        (high3 - price)
+                        / high3
+                    ) * 100
+
+
+                    if distance_three <= THREE_DAY_RESISTANCE_DISTANCE:
+
+                        title = "🟧 مقاومت ۳ روزه"
+
+                    else:
+
+                        title = "🚀 پامپ"
+
 
 
                 elif daily_distance <= DAILY_RESISTANCE_DISTANCE:
@@ -314,8 +329,7 @@ class MarketScanner:
 
 
 
-                # جلوگیری از ارسال تکراری
-                if not self.state.can_send(symbol):
+                if not self.state.can_send(symbol, title):
 
                     print(
                         "Duplicate blocked:",
@@ -369,9 +383,16 @@ class MarketScanner:
 
     async def close(self):
 
-        if self.session:
+        try:
+            if self.session:
+                await self.session.close()
 
-            await self.session.close()
+        except Exception:
+            pass
 
 
-        await self.history.close()
+        try:
+            await self.history.close()
+
+        except Exception:
+            pass
