@@ -222,6 +222,7 @@ class MarketScanner:
                     and avg_volume > 0
                     and volume >= avg_volume * 3
                 ):
+
                     pump_scalp = True
 
 
@@ -262,12 +263,14 @@ class MarketScanner:
                     mss_score += 5
 
 
-                if volume >= avg_volume * 2 if avg_volume > 0 else False:
+                if avg_volume > 0 and volume >= avg_volume * 2:
 
                     mss_score += 5
 
 
                 score += mss_score
+
+                score = min(score, 100)
 
 
 
@@ -372,10 +375,6 @@ class MarketScanner:
                         f"{avg_volume:,.0f}"
                     )
 
-
-                message += (
-                    f"\n🧠 MSS Score: {mss_score}"
-                )
 
 
                 alerts.append(message)
