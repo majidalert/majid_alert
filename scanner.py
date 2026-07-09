@@ -15,12 +15,14 @@ class MarketScanner:
         self.history = MarketHistory()
         self.session = None
 
+
     async def get_session(self):
 
         if self.session is None:
             self.session = aiohttp.ClientSession()
 
         return self.session
+
 
     async def get_symbols(self):
 
@@ -47,6 +49,7 @@ class MarketScanner:
                 if coin.get("quoteCoin") == "USDT"
             ]
 
+
     async def get_ticker(self, symbol):
 
         session = await self.get_session()
@@ -71,6 +74,7 @@ class MarketScanner:
 
             return result[0]
 
+
     async def calculate_score(
         self,
         symbol,
@@ -81,14 +85,15 @@ class MarketScanner:
 
         score = 0
 
-        weekly_high = None
         three_day_high = None
+        weekly_high = None
 
         high3, low3 = await self.history.get_three_day_levels(symbol)
 
         high7, low7 = await self.history.get_week_levels(symbol)
 
         avg_volume = await self.history.get_average_volume(symbol)
+
 
         if low3:
 
@@ -100,6 +105,7 @@ class MarketScanner:
             if rise3 >= MIN_RISE_FROM_LOW:
                 score += 25
 
+
         if low7:
 
             rise7 = (
@@ -109,6 +115,7 @@ class MarketScanner:
 
             if rise7 >= MIN_RISE_FROM_LOW:
                 score += 25
+
 
         if high3:
 
@@ -122,6 +129,7 @@ class MarketScanner:
             if distance <= THREE_DAY_RESISTANCE_DISTANCE:
                 score += 20
 
+
         if high7:
 
             weekly_high = high7
@@ -134,25 +142,27 @@ class MarketScanner:
             if distance <= WEEKLY_RESISTANCE_DISTANCE:
                 score += 20
 
+
         if avg_volume > 0:
 
-            if volume >= (
-                avg_volume *
-                VOLUME_MULTIPLIER
-            ):
+            if volume >= avg_volume * VOLUME_MULTIPLIER:
                 score += 10
+
 
         return (
             score,
             three_day_high,
             weekly_high,
-            avg_volume,
+            avg_volume
         )
-            async def scan(self):
+
+
+    async def scan(self):
 
         alerts = []
 
         symbols = await self.get_symbols()
+
 
         for symbol in symbols:
 
@@ -160,60 +170,89 @@ class MarketScanner:
 
                 ticker = await self.get_ticker(symbol)
 
+
                 if ticker is None:
                     continue
 
-                vals = [
-                    ticker.get("lastPrice"),
-                    ticker.get("highPrice24h"),
-                    ticker.get("lowPrice24h"),
-                    ticker.get("turnover24h"),
-                ]
 
-                if any(v in (None, "") for v in vals):
+                last_price = ticker.get("lastPrice")
+                high_price = ticker.get("highPrice24h")
+                low_price = ticker.get("lowPrice24h")
+                volume = ticker.get("turnover24h")
+
+
+                if any(
+                    x in (None, "")
+                    for x in [
+                        last_price,
+                        high_price,
+                        low_price,
+                        volume
+                    ]
+                ):
                     continue
 
-                last_price = float(vals[0])
-                high_price = float(vals[1])
-                low_price = float(vals[2])
-                volume = float(vals[3])
+
+                last_price = float(last_price)
+                high_price = float(high_price)
+                low_price = float(low_price)
+                volume = float(volume)
+
 
                 if low_price <= 0:
                     continue
+
 
                 change = (
                     (last_price - low_price)
                     / low_price
                 ) * 100
 
+
                 if change < MIN_RISE_FROM_LOW:
                     continue
+
+
 
                 (
                     score,
                     high3,
                     high7,
-                    avg_volume,
+                    avg_volume
+
                 ) = await self.calculate_score(
                     symbol,
                     last_price,
                     volume,
-                    change,
+                    change
                 )
 
+
+
                 daily_distance = (
+
                     (high_price - last_price)
-                    / high_price
+                    /
+                    high_price
+
                 ) * 100
+
+
 
                 if daily_distance <= DAILY_RESISTANCE_DISTANCE:
                     score += 15
 
+
+
                 if change >= PUMP_PERCENT:
                     score += 10
 
+
+
                 psychological = False
-                                if last_price >= 1:
+
+
+                if last_price >= 1:
 
                     integer = round(last_price)
 
@@ -221,6 +260,7 @@ class MarketScanner:
 
                         psychological = True
                         score += 10
+
 
                 else:
 
@@ -230,8 +270,9 @@ class MarketScanner:
                         0.3,
                         0.5,
                         0.8,
-                        1.0,
+                        1.0
                     ]
+
 
                     for level in levels:
 
@@ -241,50 +282,82 @@ class MarketScanner:
                             score += 10
                             break
 
+
+
                 if score < MIN_SCORE:
                     continue
 
-                resistance_type = ""
+
 
                 if high7:
 
                     distance_week = (
+
                         (high7 - last_price)
-                        / high7
+                        /
+                        high7
+
                     ) * 100
+
 
                     if distance_week <= WEEKLY_RESISTANCE_DISTANCE:
 
                         resistance_type = "🟥 مقاومت هفتگی"
 
+                    else:
+
+                        resistance_type = "🚀 پامپ"
+
+
+
                 elif high3:
 
                     distance_three = (
+
                         (high3 - last_price)
-                        / high3
+                        /
+                        high3
+
                     ) * 100
+
 
                     if distance_three <= THREE_DAY_RESISTANCE_DISTANCE:
 
                         resistance_type = "🟧 مقاومت ۳ روزه"
 
+                    else:
+
+                        resistance_type = "🚀 پامپ"
+
+
+
                 elif daily_distance <= DAILY_RESISTANCE_DISTANCE:
 
                     resistance_type = "🟨 مقاومت روزانه"
 
+
                 else:
 
                     resistance_type = "🚀 پامپ"
-                                    heat = "⭐"
+
+
+
+                heat = "⭐"
+
 
                 if score >= 90:
                     heat = "⭐⭐⭐⭐⭐"
+
                 elif score >= 80:
                     heat = "⭐⭐⭐⭐"
+
                 elif score >= 70:
                     heat = "⭐⭐⭐"
+
                 elif score >= 60:
                     heat = "⭐⭐"
+
+
 
                 message = make_message(
                     resistance_type,
@@ -292,30 +365,54 @@ class MarketScanner:
                     last_price,
                     change,
                     volume,
-                    score,
+                    score
                 )
+
 
                 message += f"\n🔥 قدرت هشدار: {heat}"
 
+
                 if psychological:
+
                     message += "\n🧠 نزدیک عدد روانی"
 
+
+
                 if avg_volume > 0:
-                    message += f"\n📊 حجم میانگین: {avg_volume:,.0f}"
+
+                    message += (
+                        f"\n📊 حجم میانگین: "
+                        f"{avg_volume:,.0f}"
+                    )
+
 
                 alerts.append(message)
 
+
+
             except Exception as e:
 
-                print(symbol, e)
+                print(
+                    "ERROR",
+                    symbol,
+                    e
+                )
+
+
 
             await asyncio.sleep(0.05)
 
+
+
         return alerts
+
+
 
     async def close(self):
 
         if self.session:
+
             await self.session.close()
+
 
         await self.history.close()
