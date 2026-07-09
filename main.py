@@ -21,7 +21,6 @@ async def run():
     print("=" * 50)
 
 
-
     while True:
 
         try:
@@ -29,13 +28,11 @@ async def run():
             alerts = await scanner.scan()
 
 
-
             if alerts:
 
                 print(
                     f"{len(alerts)} Alert(s) Found"
                 )
-
 
 
                 for alert in alerts:
@@ -46,7 +43,6 @@ async def run():
                             alert
                         )
 
-
                     except Exception as e:
 
                         print(
@@ -55,13 +51,11 @@ async def run():
                         )
 
 
-
             else:
 
                 print(
                     "No Alert"
                 )
-
 
 
         except Exception as e:
@@ -72,12 +66,9 @@ async def run():
             )
 
 
-
         await asyncio.sleep(
             SCAN_INTERVAL
         )
-
-
 
 
 
@@ -87,10 +78,7 @@ async def shutdown():
 
 
 
-
-
 if __name__ == "__main__":
-
 
     try:
 
