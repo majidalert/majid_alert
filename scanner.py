@@ -1,50 +1,155 @@
-import requests
+import aiohttp
+import asyncio
+from config import *
+from utils import make_message
+from state import AlertState
+
 
 class MarketScanner:
+    def __init__(self):
+        self.state = AlertState(ALERT_COOLDOWN)
+        self.session = None
 
-    BINANCE_URL = "https://fapi.binance.com/fapi/v1/ticker/24hr"
+    async def get_session(self):
+        if self.session is None:
+            self.session = aiohttp.ClientSession()
+        return self.session
+
+    async def get_symbols(self):
+        session = await self.get_session()
+        url = BASE_URL + "/v5/market/instruments-info?category=linear"
+
+        async with session.get(url) as response:
+            text = await response.text()
+
+            try:
+                data = await response.json()
+            except Exception:
+                print("Bybit Response:")
+                print(text)
+                return []
+
+            if data.get("retCode") != 0:
+                print(data)
+                return []
+
+            result = data["result"]["list"]
+
+            symbols = []
+            for coin in result:
+                if coin.get("quoteCoin") == "USDT":
+                    symbols.append(coin["symbol"])
+
+            return symbols
+
+    async def get_ticker(self, symbol):
+        session = await self.get_session()
+
+        url = BASE_URL + f"/v5/market/tickers?category=linear&symbol={symbol}"
+
+        async with session.get(url) as response:
+            text = await response.text()
+
+            try:
+                data = await response.json()
+            except Exception:
+                print(symbol)
+                print(text)
+                return None
+
+            if data.get("retCode") != 0:
+                return None
+
+            return data["result"]["list"][0]
 
     async def scan(self):
-
         alerts = []
 
         try:
+            symbols = await self.get_symbols()
 
-            response = requests.get(self.BINANCE_URL, timeout=10)
-            response.raise_for_status()
+            for symbol in symbols:
 
-            data = response.json()
+                ticker = await self.get_ticker(symbol)
 
-            if not isinstance(data, list):
-                print("Binance API Error:", data)
-                return alerts
-
-            for coin in data:
-
-                symbol = coin.get("symbol", "")
-
-                if not symbol.endswith("USDT"):
+                if ticker is None:
                     continue
 
-                change = float(coin.get("priceChangePercent", 0))
+                try:
+                    last_price = float(ticker["lastPrice"])
+                    high_price = float(ticker["highPrice24h"])
+                    low_price = float(ticker["lowPrice24h"])
+                    volume = float(ticker["turnover24h"])
 
-                if change >= 10:
+                    if low_price == 0:
+                        continue
 
-                    alerts.append(
-                        f"🚀 PUMP\n\n"
-                        f"📈 {symbol}\n"
-                        f"رشد 24 ساعته: {change:.2f}%"
-                    )
+                    change = ((last_price - low_price) / low_price) * 100
+                    score = 0
 
-                elif change <= -10:
+                    if change >= PUMP_PERCENT:
+                        score += 40
 
-                    alerts.append(
-                        f"📉 DUMP\n\n"
-                        f"📉 {symbol}\n"
-                        f"ریزش 24 ساعته: {change:.2f}%"
-                    )
+                    if change <= DUMP_PERCENT:
+                        score += 40
+
+                    distance = ((high_price - last_price) / high_price) * 100
+
+                    if (
+                        distance <= NEAR_HIGH_PERCENT
+                        and self.state.can_send(symbol, "HIGH")
+                    ):
+                        alerts.append(
+                            make_message(
+                                "🔥 نزدیک سقف ۲۴ ساعته",
+                                symbol,
+                                last_price,
+                                change,
+                                volume,
+                                score + 20,
+                            )
+                        )
+
+                    if (
+                        change >= PUMP_PERCENT
+                        and self.state.can_send(symbol, "PUMP")
+                    ):
+                        alerts.append(
+                            make_message(
+                                "🚀 پامپ",
+                                symbol,
+                                last_price,
+                                change,
+                                volume,
+                                score,
+                            )
+                        )
+
+                    if (
+                        change <= DUMP_PERCENT
+                        and self.state.can_send(symbol, "DUMP")
+                    ):
+                        alerts.append(
+                            make_message(
+                                "📉 دامپ",
+                                symbol,
+                                last_price,
+                                change,
+                                volume,
+                                score,
+                            )
+                        )
+
+                except Exception as e:
+                    print(symbol, e)
+
+                await asyncio.sleep(0.05)
 
         except Exception as e:
-            print("Scanner Error:", e)
+            print("Scanner:", e)
 
         return alerts
+
+    async def close(self):
+        if self.session:
+            await self.session.close()
