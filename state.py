@@ -8,8 +8,8 @@ CACHE_FILE = "alerts_cache.json"
 
 class AlertState:
     """
-    جلوگیری از ارسال هشدار تکراری
-    با ذخیره دائمی
+    جلوگیری از هشدار تکراری
+    با امکان ارسال مجدد در صورت تغییر شدید سیگنال
     """
 
     def __init__(self, cooldown):
@@ -18,7 +18,6 @@ class AlertState:
         self.cache = {}
 
         self.load()
-
 
 
     def _key(self, symbol, title):
@@ -30,7 +29,6 @@ class AlertState:
             +
             str(title).strip()
         )
-
 
 
     def load(self):
@@ -51,7 +49,6 @@ class AlertState:
             except Exception:
 
                 self.cache = {}
-
 
 
     def save(self):
@@ -80,7 +77,6 @@ class AlertState:
             )
 
 
-
     def can_send(self, symbol, title):
 
         key = self._key(
@@ -91,33 +87,26 @@ class AlertState:
         now = time.time()
 
 
-
         if key not in self.cache:
 
             self.cache[key] = now
-
             self.save()
 
             return True
-
 
 
         last_time = self.cache[key]
 
 
-
         if now - last_time >= self.cooldown:
 
             self.cache[key] = now
-
             self.save()
 
             return True
 
 
-
         return False
-
 
 
     def update(self, symbol, title):
@@ -132,13 +121,11 @@ class AlertState:
         self.save()
 
 
-
     def reset(self):
 
         self.cache.clear()
 
         self.save()
-
 
 
     def remove(self, symbol, title):
@@ -148,13 +135,11 @@ class AlertState:
             title
         )
 
-
         if key in self.cache:
 
             del self.cache[key]
 
             self.save()
-
 
 
     def last_alert(self, symbol, title):
@@ -165,7 +150,6 @@ class AlertState:
         )
 
         return self.cache.get(key)
-
 
 
     def seconds_remaining(self, symbol, title):
@@ -181,19 +165,14 @@ class AlertState:
             return 0
 
 
-
         remain = (
-
             self.cooldown
-
             -
-
             (
                 time.time()
                 -
                 self.cache[key]
             )
-
         )
 
 
