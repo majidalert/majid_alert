@@ -6,7 +6,6 @@ import os
 CACHE_FILE = "alerts_cache.json"
 
 
-
 class AlertState:
     """
     جلوگیری از ارسال هشدار تکراری
@@ -22,9 +21,15 @@ class AlertState:
 
 
 
-    def _key(self, symbol):
+    def _key(self, symbol, title):
 
-        return str(symbol).upper().strip()
+        return (
+            str(symbol).upper().strip()
+            +
+            "_"
+            +
+            str(title).strip()
+        )
 
 
 
@@ -76,9 +81,12 @@ class AlertState:
 
 
 
-    def can_send(self, symbol):
+    def can_send(self, symbol, title):
 
-        key = self._key(symbol)
+        key = self._key(
+            symbol,
+            title
+        )
 
         now = time.time()
 
@@ -112,9 +120,12 @@ class AlertState:
 
 
 
-    def update(self, symbol):
+    def update(self, symbol, title):
 
-        key = self._key(symbol)
+        key = self._key(
+            symbol,
+            title
+        )
 
         self.cache[key] = time.time()
 
@@ -130,9 +141,12 @@ class AlertState:
 
 
 
-    def remove(self, symbol):
+    def remove(self, symbol, title):
 
-        key = self._key(symbol)
+        key = self._key(
+            symbol,
+            title
+        )
 
 
         if key in self.cache:
@@ -143,17 +157,23 @@ class AlertState:
 
 
 
-    def last_alert(self, symbol):
+    def last_alert(self, symbol, title):
 
-        key = self._key(symbol)
+        key = self._key(
+            symbol,
+            title
+        )
 
         return self.cache.get(key)
 
 
 
-    def seconds_remaining(self, symbol):
+    def seconds_remaining(self, symbol, title):
 
-        key = self._key(symbol)
+        key = self._key(
+            symbol,
+            title
+        )
 
 
         if key not in self.cache:
