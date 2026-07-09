@@ -10,10 +10,13 @@ class TelegramNotifier:
 
         self.chat_id = chat_id
 
+
+
     async def send(self, message):
 
         if not message:
             return False
+
 
         try:
 
@@ -28,11 +31,17 @@ class TelegramNotifier:
 
             return True
 
+
         except Exception as e:
 
-            print("Telegram Error:", e)
+            print(
+                "Telegram Error:",
+                e
+            )
 
             return False
+
+
 
     async def send_error(self, error):
 
@@ -40,13 +49,19 @@ class TelegramNotifier:
 
             await self.bot.send_message(
                 chat_id=self.chat_id,
-                text=f"⚠️ <b>Robot Error</b>\n\n<code>{error}</code>",
+                text=(
+                    f"⚠️ <b>Robot Error</b>\n\n"
+                    f"<code>{error}</code>"
+                ),
                 parse_mode=ParseMode.HTML,
             )
+
 
         except Exception:
 
             pass
+
+
 
     async def send_start_message(self):
 
@@ -60,6 +75,19 @@ class TelegramNotifier:
                 ),
                 parse_mode=ParseMode.HTML,
             )
+
+
+        except Exception:
+
+            pass
+
+
+
+    async def close(self):
+
+        try:
+
+            await self.bot.close()
 
         except Exception:
 
