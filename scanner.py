@@ -610,61 +610,59 @@ class MarketScanner:
 
                     message += (
 
-                        "\n\n📊 SHORT ANALYSIS"
+    "\n\n📊 SHORT ANALYSIS"
 
-                        f"\n📏 کشیدگی قیمت : {stretch}%"
+    f"\n📏 کشیدگی قیمت : {stretch}%"
 
-                        f"\n🔄 احتمال اصلاح : {correction}%"
+    f"\n🔄 احتمال اصلاح : {correction}%"
 
-                        f"\n⚔️ احتمال شکست : {breakout}%"
+    f"\n⚔️ احتمال شکست : {breakout}%"
 
-                        f"\n⭐ MultiTrade Score : {multi_score}/100"
+    f"\n⭐ MultiTrade Score : {multi_score}/100"
 
-                        f"\n🏆 MSS Score : {mss}/100"
-
-
-                        "\n\n🎯 TP PLAN"
-
-                        f"\n✅ TP1 : {tp['TP1']}"
-
-                        f"\n✅ TP2 : {tp['TP2']}"
-
-                        f"\n✅ TP3 : {tp['TP3']}"
-
-                    message += (
-
-                        "\n\n📌 MULTITRADE PLAN"
-
-                        f"\n🟥 Entry 1 : {price}"
-
-                    )
+    f"\n🏆 MSS Score : {mss}/100"
 
 
-                    if r2:
+    "\n\n🎯 TP PLAN"
 
-                        message += (
+    f"\n✅ TP1 : {tp['TP1']}"
 
-                            "\n\nاگر R1 شکست:"
+    f"\n✅ TP2 : {tp['TP2']}"
 
-                            f"\n🟥 Entry 2 : {r2}"
+    f"\n✅ TP3 : {tp['TP3']}"
 
-                        )
-
-
-                    if r3:
-
-                        message += (
-
-                            "\n\nاگر R2 شکست:"
-
-                            f"\n🟥 Entry 3 : {r3}"
-
-                        )
+)
 
 
-                    )
+message += (
+
+    "\n\n📌 MULTITRADE PLAN"
+
+    f"\n🟥 Entry 1 : {price}"
+
+)
 
 
+if r2:
+
+    message += (
+
+        f"\n\nاگر R1 شکست:"
+
+        f"\n🟥 Entry 2 : {r2}"
+
+    )
+
+
+if r3:
+
+    message += (
+
+        f"\n\nاگر R2 شکست:"
+
+        f"\n🟥 Entry 3 : {r3}"
+
+    )
                     alerts.append(
                         message
                     )
