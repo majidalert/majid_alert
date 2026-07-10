@@ -126,7 +126,10 @@ class MarketScanner:
             return False
 
         return volume >= avg * 2
-            async def breakout_check(self, symbol, price):
+
+
+    async def breakout_check(self, symbol, price):
+         
 
         levels = [
             ("4H", "240"),
@@ -279,7 +282,10 @@ class MarketScanner:
 
 
         return resistance
-            async def scan(self):
+
+
+    async def scan(self):
+   
 
         alerts = []
 
