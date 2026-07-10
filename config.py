@@ -31,8 +31,11 @@ PUMP_PERCENT = 10.0
 # دامپ
 DUMP_PERCENT = -10.0
 
-# رشد از کف
+# حداقل رشد از کف
 MIN_RISE_FROM_LOW = 5.0
+
+# حداقل درصد طی شدن مسیر تا مقاومت اصلی
+MIN_EXTENSION_PERCENT = 75.0
 
 # حرکت غیرعادی
 UNUSUAL_MOVE_PERCENT = 8.0
@@ -46,6 +49,9 @@ UNUSUAL_VOLUME_MULTIPLIER = 2.5
 # حداقل امتیاز ارسال
 MIN_SCORE = 80
 
+# حداقل امتیاز مولتی ترید
+MIN_MULTITRADE_SCORE = 80
+
 # ===========================
 # Resistance
 # ===========================
@@ -54,9 +60,9 @@ FOUR_HOUR_RESISTANCE_DISTANCE = 2.0
 
 DAILY_RESISTANCE_DISTANCE = 2.0
 
-WEEKLY_RESISTANCE_DISTANCE = 5.0
-
 THREE_DAY_RESISTANCE_DISTANCE = 3.0
+
+WEEKLY_RESISTANCE_DISTANCE = 5.0
 
 # ===========================
 # Support
@@ -100,14 +106,22 @@ ALERT_NORMAL = "📊 هشدار بازار"
 # Score
 # ===========================
 
-SCORE_RISE = 30
+SCORE_RISE = 20
 
-SCORE_PUMP = 20
+SCORE_EXTENSION = 20
 
-SCORE_RESISTANCE = 30
+SCORE_VOLUME = 10
 
-SCORE_VOLUME = 20
+SCORE_PUMP = 10
 
-SCORE_FOMO = 25
+SCORE_BREAKOUT = 10
 
-SCORE_UNUSUAL = 20
+SCORE_PULLBACK = 10
+
+SCORE_4H = 15
+
+SCORE_1D = 20
+
+SCORE_3D = 25
+
+SCORE_1W = 30
