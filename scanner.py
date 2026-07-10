@@ -35,9 +35,9 @@ class MarketScanner:
             result = data.get("result", {}).get("list", [])
 
             return [
-                coin["symbol"]
-                for coin in result
-                if coin.get("quoteCoin") == "USDT"
+                c["symbol"]
+                for c in result
+                if c.get("quoteCoin") == "USDT"
             ]
 
 
@@ -60,7 +60,12 @@ class MarketScanner:
             return result[0]
 
 
-    async def get_candles(self, symbol, interval, limit=100):
+    async def get_candles(
+        self,
+        symbol,
+        interval,
+        limit=100
+    ):
 
         session = await self.get_session()
 
@@ -97,6 +102,20 @@ class MarketScanner:
         )
 
 
+    async def get_low(self, symbol, interval):
+
+        candles = await self.get_candles(
+            symbol,
+            interval
+        )
+
+        if not candles:
+            return None
+
+        return min(
+            float(c[3])
+            for c in candles
+        )
     async def get_average_volume(self, symbol):
 
         candles = await self.get_candles(
@@ -116,6 +135,7 @@ class MarketScanner:
         return sum(volumes) / len(volumes)
 
 
+
     async def volume_check(self, symbol, volume):
 
         avg = await self.get_average_volume(
@@ -128,87 +148,172 @@ class MarketScanner:
         return volume >= avg * 2
 
 
-    async def breakout_check(self, symbol, price):
-         
 
-        levels = [
+    async def resistance_levels(self, symbol):
+
+        levels = []
+
+        data = [
             ("4H", "240"),
             ("1D", "D"),
+            ("3D", "3D"),
             ("1W", "W")
         ]
 
-        breakout = {}
+        for name, interval in data:
 
-        for name, interval in levels:
+            try:
 
-            high = await self.get_high(
-                symbol,
-                interval
-            )
+                high = await self.get_high(
+                    symbol,
+                    interval
+                )
 
-            if high:
+                if high:
 
-                if price > high:
+                    levels.append(
+                        {
+                            "name": name,
+                            "price": high
+                        }
+                    )
 
-                    breakout[name] = high
+            except:
+
+                pass
 
 
-        return breakout
+        levels.sort(
+            key=lambda x: x["price"]
+        )
+
+        return levels
 
 
 
-    async def pullback_check(self, symbol, price):
+    async def stretch_check(
+        self,
+        symbol,
+        price,
+        resistance
+    ):
 
-        candles = await self.get_candles(
+        low = await self.get_low(
             symbol,
-            "15",
-            50
+            "D"
         )
 
-        if not candles:
-            return False
+        if not low:
+            return 0
 
 
-        recent_high = max(
-            float(c[2])
-            for c in candles
-        )
+        if resistance <= low:
+            return 0
 
 
-        distance = (
-            (recent_high - price)
+        stretch = (
+            (price - low)
             /
-            recent_high
+            (resistance - low)
         ) * 100
 
 
-        if 0 <= distance <= 1.5:
-
-            return True
-
-
-        return False
+        return round(
+            stretch,
+            2
+        )
 
 
 
-    async def pump_check(self, price, low):
+    async def breakout_probability(
+        self,
+        price,
+        resistance,
+        volume
+    ):
+
+        score = 0
+
+
+        if price >= resistance:
+
+            score += 50
+
+
+        if volume:
+
+            score += 30
+
+
+        if price > resistance * 1.01:
+
+            score += 20
+
+
+        return min(
+            score,
+            100
+        )
+
+
+
+    async def correction_probability(
+        self,
+        stretch,
+        near_resistance
+    ):
+
+        score = 0
+
+
+        if stretch >= 70:
+
+            score += 50
+
+
+        if near_resistance:
+
+            score += 30
+
+
+        if stretch >= 90:
+
+            score += 20
+
+
+        return min(
+            score,
+            100
+        )
+
+
+
+    async def pump_check(
+        self,
+        price,
+        low
+    ):
 
         if low <= 0:
             return False
 
 
-        move = (
+        change = (
             (price - low)
             /
             low
         ) * 100
 
 
-        return move >= PUMP_PERCENT
+        return change >= PUMP_PERCENT
 
 
 
-    async def dump_check(self, price, high):
+    async def dump_check(
+        self,
+        price,
+        high
+    ):
 
         if high <= 0:
             return False
@@ -222,70 +327,109 @@ class MarketScanner:
 
 
         return drop >= DUMP_PERCENT
+    async def multittrade_score(
+        self,
+        stretch,
+        correction,
+        breakout,
+        volume,
+        resistance
+    ):
+
+        score = 0
+
+
+        if stretch >= 70:
+            score += 30
+
+
+        if correction >= 60:
+            score += 25
+
+
+        if breakout < 50:
+            score += 20
+
+
+        if volume:
+            score += 15
+
+
+        if resistance:
+            score += 10
+
+
+        return min(
+            score,
+            100
+        )
 
 
 
-    async def resistance_check(self, symbol, price):
+    async def mss_score(
+        self,
+        stretch,
+        correction,
+        breakout
+    ):
 
-        resistance = {}
+        score = 0
 
-        levels = [
-            (
-                "4H",
-                "240",
-                FOUR_HOUR_RESISTANCE_DISTANCE
+
+        if stretch >= 70:
+            score += 40
+
+
+        if correction >= 60:
+            score += 30
+
+
+        if breakout < 50:
+            score += 30
+
+
+        return min(
+            score,
+            100
+        )
+
+
+
+    async def calculate_tp(
+        self,
+        price,
+        resistance
+    ):
+
+        distance = (
+            resistance - price
+        )
+
+
+        return {
+
+            "TP1":
+            round(
+                price - distance * 0.5,
+                6
             ),
-            (
-                "1D",
-                "D",
-                DAILY_RESISTANCE_DISTANCE
+
+            "TP2":
+            round(
+                price - distance,
+                6
             ),
-            (
-                "1W",
-                "W",
-                WEEKLY_RESISTANCE_DISTANCE
+
+            "TP3":
+            round(
+                price - distance * 1.5,
+                6
             )
-        ]
+        }
 
-
-        for name, interval, limit in levels:
-
-            try:
-
-                high = await self.get_high(
-                    symbol,
-                    interval
-                )
-
-
-                if high:
-
-                    distance = (
-                        (high - price)
-                        /
-                        high
-                    ) * 100
-
-
-                    if 0 <= distance <= limit:
-
-                        resistance[name] = high
-
-
-            except Exception as e:
-
-                print(
-                    "Resistance Error:",
-                    symbol,
-                    e
-                )
-
-
-        return resistance
 
 
     async def scan(self):
-   
 
         alerts = []
 
@@ -296,21 +440,23 @@ class MarketScanner:
 
             try:
 
-                ticker = await self.get_ticker(symbol)
+                ticker = await self.get_ticker(
+                    symbol
+                )
 
-                if ticker is None:
+                if not ticker:
                     continue
 
 
-                last_price = float(
+                price = float(
                     ticker.get("lastPrice")
                 )
 
-                high_price = float(
+                high = float(
                     ticker.get("highPrice24h")
                 )
 
-                low_price = float(
+                low = float(
                     ticker.get("lowPrice24h")
                 )
 
@@ -319,136 +465,163 @@ class MarketScanner:
                 )
 
 
-                if low_price <= 0:
+                if low <= 0:
                     continue
 
 
-                change = (
-                    (last_price - low_price)
+                rise = (
+                    (price - low)
                     /
-                    low_price
+                    low
                 ) * 100
 
 
-                score = 0
+                # حذف ارزهای کم حرکت
+
+                if rise < 30:
+                    continue
 
 
-                pump = await self.pump_check(
-                    last_price,
-                    low_price
+
+                resistance = await self.resistance_levels(
+                    symbol
                 )
 
 
-                dump = await self.dump_check(
-                    last_price,
-                    high_price
+                if not resistance:
+                    continue
+
+
+                r1 = resistance[0]["price"]
+
+
+                stretch = await self.stretch_check(
+                    symbol,
+                    price,
+                    r1
                 )
 
 
-                volume_spike = await self.volume_check(
+                correction = await self.correction_probability(
+                    stretch,
+                    True
+                )
+
+
+                breakout = await self.breakout_probability(
+                    price,
+                    r1,
+                    volume
+                )
+
+
+                volume_ok = await self.volume_check(
                     symbol,
                     volume
                 )
 
 
-                breakout = await self.breakout_check(
-                    symbol,
-                    last_price
+                multi_score = await self.multittrade_score(
+                    stretch,
+                    correction,
+                    breakout,
+                    volume_ok,
+                    True
                 )
 
 
-                pullback = await self.pullback_check(
-                    symbol,
-                    last_price
+                mss = await self.mss_score(
+                    stretch,
+                    correction,
+                    breakout
                 )
 
 
-                resistance = await self.resistance_check(
-                    symbol,
-                    last_price
+                if multi_score < 70:
+                    continue
+
+
+                if mss < 70:
+                    continue
+                tp = await self.calculate_tp(
+                    price,
+                    r1
                 )
 
 
-                if pump:
-                    score += 25
-
-
-                if dump:
-                    score += 25
-
-
-                if volume_spike:
-                    score += 20
-
-
-                if breakout:
-                    score += 30
-
-
-                if pullback:
-                    score += 15
-
-
-                if resistance:
-                    score += 20
-
-
-
-                if (
-                    score >= MIN_SCORE
-                    and
-                    self.state.can_send(
-                        symbol,
-                        "ALERT"
-                    )
+                if self.state.can_send(
+                    symbol,
+                    "SHORT"
                 ):
 
 
-                    title = "🚨 هشدار بازار"
+                    title = (
+                        "🟥 SHORT MULTITRADE SETUP"
+                    )
 
 
-                    if breakout and volume_spike:
+                    resistance_text = ""
 
-                        title = (
-                            "🚀 Breakout + Volume غیرعادی"
+
+                    for r in resistance[:3]:
+
+                        resistance_text += (
+                            f"\n🔸 {r['name']} : "
+                            f"{r['price']}"
                         )
 
-                    elif pump and volume_spike:
 
-                        title = (
-                            "🔥 پامپ هیجانی + حجم بالا"
-                        )
 
-                    elif dump:
+                    message = make_message(
+                        title,
+                        symbol,
+                        price,
+                        rise,
+                        volume,
+                        multi_score,
+                        resistance=resistance
+                    )
 
-                        title = (
-                            "🟥 دامپ شدید"
-                        )
 
-                    elif pullback:
+                    message += (
 
-                        title = (
-                            "🔄 Pullback بعد از حرکت"
-                        )
+                        "\n\n📊 SHORT ANALYSIS"
 
-                    elif resistance:
+                        f"\n📏 کشیدگی قیمت : {stretch}%"
 
-                        title = (
-                            "⚠️ نزدیک مقاومت مهم"
-                        )
+                        f"\n🔄 احتمال اصلاح : {correction}%"
+
+                        f"\n⚔️ احتمال شکست : {breakout}%"
+
+                        f"\n⭐ MultiTrade Score : {multi_score}/100"
+
+                        f"\n🏆 MSS Score : {mss}/100"
+
+
+                        "\n\n🎯 TP PLAN"
+
+                        f"\n✅ TP1 : {tp['TP1']}"
+
+                        f"\n✅ TP2 : {tp['TP2']}"
+
+                        f"\n✅ TP3 : {tp['TP3']}"
+
+                        "\n\n📌 MULTITRADE"
+
+                        "\n🟥 Entry 1 : Current"
+
+                        f"\n🟥 Entry 2 : {r1}"
+
+                        "\n🟥 Entry 3 : Next Resistance"
+
+
+                    )
 
 
                     alerts.append(
-                        make_message(
-                            title,
-                            symbol,
-                            last_price,
-                            change,
-                            volume,
-                            score,
-                            resistance=resistance
-                        )
+                        message
                     )
+
 
 
             except Exception as e:
@@ -459,10 +632,15 @@ class MarketScanner:
                 )
 
 
-            await asyncio.sleep(0.05)
+
+            await asyncio.sleep(
+                0.05
+            )
+
 
 
         return alerts
+
 
 
 
