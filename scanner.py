@@ -508,10 +508,10 @@ class MarketScanner:
 
 
 
-        resistance = await self.resistance_levels(
-            symbol,
-            price
-        )
+                resistance = await self.resistance_levels(
+                    symbol,
+                    price
+                )
 
 
                 if not resistance:
