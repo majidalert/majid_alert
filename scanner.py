@@ -631,13 +631,35 @@ class MarketScanner:
 
                         f"\n✅ TP3 : {tp['TP3']}"
 
-                        "\n\n📌 MULTITRADE"
+                    message += (
 
-                        "\n🟥 Entry 1 : Current"
+                        "\n\n📌 MULTITRADE PLAN"
 
-                        f"\n🟥 Entry 2 : {r1}"
+                        f"\n🟥 Entry 1 : {price}"
 
-                        "\n🟥 Entry 3 : Next Resistance"
+                    )
+
+
+                    if r2:
+
+                        message += (
+
+                            "\n\nاگر R1 شکست:"
+
+                            f"\n🟥 Entry 2 : {r2}"
+
+                        )
+
+
+                    if r3:
+
+                        message += (
+
+                            "\n\nاگر R2 شکست:"
+
+                            f"\n🟥 Entry 3 : {r3}"
+
+                        )
 
 
                     )
