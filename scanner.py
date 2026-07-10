@@ -149,18 +149,19 @@ class MarketScanner:
 
 
 
-    async def resistance_levels(self, symbol):
+    async def resistance_levels(self, symbol, price):
 
-        levels = []
+        raw = []
 
-        data = [
+        levels = [
             ("4H", "240"),
             ("1D", "D"),
             ("3D", "3D"),
             ("1W", "W")
         ]
 
-        for name, interval in data:
+
+        for name, interval in levels:
 
             try:
 
@@ -169,25 +170,58 @@ class MarketScanner:
                     interval
                 )
 
-                if high:
+                if high and high > price:
 
-                    levels.append(
+                    raw.append(
                         {
                             "name": name,
                             "price": high
                         }
                     )
 
-            except:
+            except Exception as e:
 
-                pass
+                print(
+                    "Resistance Error:",
+                    symbol,
+                    e
+                )
 
 
-        levels.sort(
+        raw.sort(
             key=lambda x: x["price"]
         )
 
-        return levels
+
+        merged = []
+
+
+        for item in raw:
+
+            found = False
+
+            for r in merged:
+
+                diff = abs(
+                    item["price"] - r["price"]
+                ) / r["price"] * 100
+
+
+                if diff < 1:
+
+                    r["name"] += "/" + item["name"]
+                    found = True
+                    break
+
+
+            if not found:
+
+                merged.append(
+                    item
+                )
+
+
+        return merged[:3]
 
 
 
