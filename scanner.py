@@ -60,7 +60,7 @@ class MarketScanner:
             return result[0]
 
 
-    async def get_high(self, symbol, interval):
+    async def get_candles(self, symbol, interval, limit=100):
 
         session = await self.get_session()
 
@@ -68,25 +68,158 @@ class MarketScanner:
             BASE_URL +
             f"/v5/market/kline?"
             f"category=linear&symbol={symbol}"
-            f"&interval={interval}&limit=100"
+            f"&interval={interval}&limit={limit}"
         )
 
         async with session.get(url) as response:
 
             data = await response.json(content_type=None)
 
-            candles = (
+            return (
                 data.get("result", {})
                 .get("list", [])
             )
 
-            if not candles:
-                return None
 
-            return max(
-                float(candle[2])
-                for candle in candles
+    async def get_high(self, symbol, interval):
+
+        candles = await self.get_candles(
+            symbol,
+            interval
+        )
+
+        if not candles:
+            return None
+
+        return max(
+            float(c[2])
+            for c in candles
+        )
+
+
+    async def get_average_volume(self, symbol):
+
+        candles = await self.get_candles(
+            symbol,
+            "15",
+            50
+        )
+
+        if not candles:
+            return 0
+
+        volumes = [
+            float(c[6])
+            for c in candles
+        ]
+
+        return sum(volumes) / len(volumes)
+
+
+    async def volume_check(self, symbol, volume):
+
+        avg = await self.get_average_volume(
+            symbol
+        )
+
+        if avg <= 0:
+            return False
+
+        return volume >= avg * 2
+            async def breakout_check(self, symbol, price):
+
+        levels = [
+            ("4H", "240"),
+            ("1D", "D"),
+            ("1W", "W")
+        ]
+
+        breakout = {}
+
+        for name, interval in levels:
+
+            high = await self.get_high(
+                symbol,
+                interval
             )
+
+            if high:
+
+                if price > high:
+
+                    breakout[name] = high
+
+
+        return breakout
+
+
+
+    async def pullback_check(self, symbol, price):
+
+        candles = await self.get_candles(
+            symbol,
+            "15",
+            50
+        )
+
+        if not candles:
+            return False
+
+
+        recent_high = max(
+            float(c[2])
+            for c in candles
+        )
+
+
+        distance = (
+            (recent_high - price)
+            /
+            recent_high
+        ) * 100
+
+
+        if 0 <= distance <= 1.5:
+
+            return True
+
+
+        return False
+
+
+
+    async def pump_check(self, price, low):
+
+        if low <= 0:
+            return False
+
+
+        move = (
+            (price - low)
+            /
+            low
+        ) * 100
+
+
+        return move >= PUMP_PERCENT
+
+
+
+    async def dump_check(self, price, high):
+
+        if high <= 0:
+            return False
+
+
+        drop = (
+            (high - price)
+            /
+            high
+        ) * 100
+
+
+        return drop >= DUMP_PERCENT
+
 
 
     async def resistance_check(self, symbol, price):
@@ -146,10 +279,7 @@ class MarketScanner:
 
 
         return resistance
-
-
-
-    async def scan(self):
+            async def scan(self):
 
         alerts = []
 
@@ -197,13 +327,34 @@ class MarketScanner:
                 score = 0
 
 
-                if change >= MIN_RISE_FROM_LOW:
-                    score += 30
+                pump = await self.pump_check(
+                    last_price,
+                    low_price
+                )
 
 
-                if change >= PUMP_PERCENT:
-                    score += 20
+                dump = await self.dump_check(
+                    last_price,
+                    high_price
+                )
 
+
+                volume_spike = await self.volume_check(
+                    symbol,
+                    volume
+                )
+
+
+                breakout = await self.breakout_check(
+                    symbol,
+                    last_price
+                )
+
+
+                pullback = await self.pullback_check(
+                    symbol,
+                    last_price
+                )
 
 
                 resistance = await self.resistance_check(
@@ -212,21 +363,27 @@ class MarketScanner:
                 )
 
 
-                if resistance:
+                if pump:
+                    score += 25
 
+
+                if dump:
+                    score += 25
+
+
+                if volume_spike:
+                    score += 20
+
+
+                if breakout:
                     score += 30
 
 
-
-                distance = (
-                    (high_price - last_price)
-                    /
-                    high_price
-                ) * 100
+                if pullback:
+                    score += 15
 
 
-                if distance <= DAILY_RESISTANCE_DISTANCE:
-
+                if resistance:
                     score += 20
 
 
@@ -241,14 +398,37 @@ class MarketScanner:
                 ):
 
 
-                    title = "🚀 پامپ قوی"
+                    title = "🚨 هشدار بازار"
 
 
-                    if resistance:
+                    if breakout and volume_spike:
 
                         title = (
-                            "⚠️ نزدیک مقاومت مهم "
-                            "(4H / 1D / 1W)"
+                            "🚀 Breakout + Volume غیرعادی"
+                        )
+
+                    elif pump and volume_spike:
+
+                        title = (
+                            "🔥 پامپ هیجانی + حجم بالا"
+                        )
+
+                    elif dump:
+
+                        title = (
+                            "🟥 دامپ شدید"
+                        )
+
+                    elif pullback:
+
+                        title = (
+                            "🔄 Pullback بعد از حرکت"
+                        )
+
+                    elif resistance:
+
+                        title = (
+                            "⚠️ نزدیک مقاومت مهم"
                         )
 
 
