@@ -570,8 +570,7 @@ class MarketScanner:
                 if mss < 70:
                     continue
                 tp = await self.calculate_tp(
-                    price,
-                    r1
+                    price
                 )
 
 
