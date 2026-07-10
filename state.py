@@ -2,16 +2,10 @@ import time
 import json
 import os
 
-
 CACHE_FILE = "alerts_cache.json"
 
 
 class AlertState:
-
-    """
-    جلوگیری از ارسال هشدار تکراری
-    هر نوع هشدار برای هر نماد به صورت مستقل ذخیره می‌شود.
-    """
 
     def __init__(self, cooldown):
 
@@ -20,7 +14,6 @@ class AlertState:
 
         self.load()
 
-
     def _key(self, symbol, title):
 
         return (
@@ -28,7 +21,6 @@ class AlertState:
             + "_"
             + str(title).strip()
         )
-
 
     def load(self):
 
@@ -50,7 +42,6 @@ class AlertState:
 
             self.cache = {}
 
-
     def save(self):
 
         try:
@@ -70,13 +61,15 @@ class AlertState:
 
         except Exception as e:
 
-            print(
-                "Cache Save Error:",
-                e
-            )
+            print("Cache Save Error:", e)
 
-
-    def can_send(self, symbol, title):
+    def can_send(
+        self,
+        symbol,
+        title,
+        score=None,
+        multitrade_score=None
+    ):
 
         key = self._key(symbol, title)
 
@@ -86,38 +79,75 @@ class AlertState:
 
             self.cache[key] = {
                 "time": now,
-                "count": 1
+                "count": 1,
+                "score": score,
+                "multitrade_score": multitrade_score
             }
 
             self.save()
 
             return True
 
-
         item = self.cache[key]
 
-        if isinstance(item, (int, float)):
-            last_time = item
-            count = 1
-        else:
-            last_time = item.get("time", 0)
-            count = item.get("count", 1)
+        last_time = item.get("time", 0)
+
+        old_score = item.get("score", 0)
+
+        old_multi = item.get(
+            "multitrade_score",
+            0
+        )
+
+        # اگر کیفیت هشدار بهتر شده باشد دوباره ارسال شود
+        if (
+            score is not None
+            and score > old_score + 10
+        ):
+
+            self.update(
+                symbol,
+                title,
+                score,
+                multitrade_score
+            )
+
+            return True
+
+        if (
+            multitrade_score is not None
+            and multitrade_score > old_multi + 10
+        ):
+
+            self.update(
+                symbol,
+                title,
+                score,
+                multitrade_score
+            )
+
+            return True
 
         if now - last_time >= self.cooldown:
 
-            self.cache[key] = {
-                "time": now,
-                "count": count + 1
-            }
-
-            self.save()
+            self.update(
+                symbol,
+                title,
+                score,
+                multitrade_score
+            )
 
             return True
 
         return False
 
-
-    def update(self, symbol, title):
+    def update(
+        self,
+        symbol,
+        title,
+        score=None,
+        multitrade_score=None
+    ):
 
         key = self._key(symbol, title)
 
@@ -130,18 +160,18 @@ class AlertState:
 
         self.cache[key] = {
             "time": time.time(),
-            "count": count
+            "count": count,
+            "score": score,
+            "multitrade_score": multitrade_score
         }
 
         self.save()
-
 
     def reset(self):
 
         self.cache = {}
 
         self.save()
-
 
     def remove(self, symbol, title):
 
@@ -153,7 +183,6 @@ class AlertState:
 
             self.save()
 
-
     def last_alert(self, symbol, title):
 
         key = self._key(symbol, title)
@@ -163,11 +192,7 @@ class AlertState:
         if item is None:
             return None
 
-        if isinstance(item, dict):
-            return item.get("time")
-
-        return item
-
+        return item.get("time")
 
     def alert_count(self, symbol, title):
 
@@ -175,14 +200,10 @@ class AlertState:
 
         item = self.cache.get(key)
 
-        if isinstance(item, dict):
-            return item.get("count", 0)
+        if item is None:
+            return 0
 
-        if item:
-            return 1
-
-        return 0
-
+        return item.get("count", 0)
 
     def seconds_remaining(self, symbol, title):
 
@@ -193,11 +214,8 @@ class AlertState:
         if item is None:
             return 0
 
-        if isinstance(item, dict):
-            last_time = item.get("time", 0)
-        else:
-            last_time = item
-
-        remain = self.cooldown - (time.time() - last_time)
+        remain = self.cooldown - (
+            time.time() - item.get("time", 0)
+        )
 
         return max(0, int(remain))
