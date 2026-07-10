@@ -26,6 +26,7 @@ def format_number(value):
         return str(value)
 
 
+
 def format_percent(value):
 
     try:
@@ -35,11 +36,13 @@ def format_percent(value):
         return "-"
 
 
+
 def now():
 
     return datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
     )
+
 
 
 def score_level(score):
@@ -57,6 +60,7 @@ def score_level(score):
         return "🟡 متوسط"
 
     return "🟢 ضعیف"
+
 
 
 def make_message(
@@ -78,7 +82,10 @@ def make_message(
     correction_probability=None,
     breakout_probability=None,
     entry_status=None,
+    entry2=None,
+    entry3=None,
 ):
+
 
     message = (
 
@@ -98,6 +105,8 @@ def make_message(
 
     )
 
+
+
     if extension is not None:
 
         message += (
@@ -105,11 +114,26 @@ def make_message(
             f"{format_percent(extension)}\n"
         )
 
+
+
     if resistance:
 
-        if isinstance(resistance, dict):
+        message += (
+            "\n🟥 مقاومت‌های مهم\n"
+        )
 
-            message += "\n🟥 مقاومت‌های مهم\n"
+
+        if isinstance(resistance, list):
+
+            for r in resistance:
+
+                message += (
+                    f"🔸 {r['name']} : "
+                    f"{format_number(r['price'])}\n"
+                )
+
+
+        elif isinstance(resistance, dict):
 
             for tf, value in resistance.items():
 
@@ -118,12 +142,14 @@ def make_message(
                     f"{format_number(value)}\n"
                 )
 
+
         else:
 
             message += (
-                f"\n🟥 مقاومت : "
-                f"{format_number(resistance)}\n"
+                f"🔸 {format_number(resistance)}\n"
             )
+
+
 
     if support:
 
@@ -132,6 +158,8 @@ def make_message(
             f"{format_number(support)}\n"
         )
 
+
+
     if psychological:
 
         message += (
@@ -139,12 +167,44 @@ def make_message(
             f"{format_number(psychological)}\n"
         )
 
+
+
     if entry_status:
 
         message += (
-            f"\n🎯 وضعیت مولتی‌ترید : "
-            f"{entry_status}\n"
+
+            "\n📌 MULTITRADE SHORT\n"
+
+            f"🟥 Entry 1 : "
+            f"{format_number(price)}\n"
+
         )
+
+
+        if entry2:
+
+            message += (
+
+                "\nاگر مقاومت اول شکست:\n"
+
+                f"🟥 Entry 2 : "
+                f"{format_number(entry2)}\n"
+
+            )
+
+
+        if entry3:
+
+            message += (
+
+                "\nاگر مقاومت دوم شکست:\n"
+
+                f"🟥 Entry 3 : "
+                f"{format_number(entry3)}\n"
+
+            )
+
+
 
     if tp1:
 
@@ -153,12 +213,14 @@ def make_message(
             f"{format_number(tp1)}"
         )
 
+
     if tp2:
 
         message += (
             f"\n🎯 TP2 : "
             f"{format_number(tp2)}"
         )
+
 
     if tp3:
 
@@ -167,12 +229,16 @@ def make_message(
             f"{format_number(tp3)}\n"
         )
 
+
+
     if correction_probability is not None:
 
         message += (
             f"\n📉 احتمال اصلاح : "
             f"{correction_probability:.0f}%"
         )
+
+
 
     if breakout_probability is not None:
 
@@ -181,11 +247,15 @@ def make_message(
             f"{breakout_probability:.0f}%"
         )
 
+
+
     if "پامپ" in title:
 
         message += (
             "\n🚀 احتمال ادامه روند صعودی وجود دارد.\n"
         )
+
+
 
     if "دامپ" in title:
 
@@ -193,11 +263,15 @@ def make_message(
             "\n📉 احتمال ادامه فشار فروش وجود دارد.\n"
         )
 
+
+
     if "هیجان" in title:
 
         message += (
             "\n🔥 ورود هیجانی معامله‌گران مشاهده شده است.\n"
         )
+
+
 
     if "حرکت غیرعادی" in title:
 
@@ -205,11 +279,15 @@ def make_message(
             "\n⚡ نوسان غیرعادی در بازار شناسایی شد.\n"
         )
 
+
+
     if "حجم غیرعادی" in title:
 
         message += (
             "\n📦 حجم معاملات به شکل غیرمعمول افزایش یافته است.\n"
         )
+
+
 
     if mss_reason:
 
@@ -218,24 +296,37 @@ def make_message(
             f"{mss_reason}\n"
         )
 
+
+
     message += (
+
         f"\n⭐ MSS Score : {score}/100\n"
+
     )
+
+
 
     if multitrade_score is not None:
 
         message += (
+
             f"🎯 MultiTrade Score : "
+
             f"{multitrade_score}/100\n"
+
         )
+
+
 
     message += (
 
         f"🏆 کیفیت سیگنال : "
+
         f"{score_level(score)}\n"
 
         f"🕒 {now()}"
 
     )
+
 
     return message
