@@ -431,38 +431,29 @@ class MarketScanner:
 
     async def calculate_tp(
         self,
-        price,
-        resistance
+        price
     ):
-
-        distance = (
-            resistance - price
-        )
-
 
         return {
 
             "TP1":
             round(
-                price - distance * 0.5,
+                price * 0.97,
                 6
             ),
 
             "TP2":
             round(
-                price - distance,
+                price * 0.94,
                 6
             ),
 
             "TP3":
             round(
-                price - distance * 1.5,
+                price * 0.90,
                 6
             )
         }
-
-
-
     async def scan(self):
 
         alerts = []
