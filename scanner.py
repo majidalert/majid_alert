@@ -603,8 +603,16 @@ class MarketScanner:
                         price,
                         rise,
                         volume,
-                        multi_score,
-                        resistance=resistance
+                        mss,
+                        resistance=resistance,
+                        extension=stretch,
+                        multitrade_score=multi_score,
+                        tp1=tp["TP1"],
+                        tp2=tp["TP2"],
+                        tp3=tp["TP3"],
+                        correction_probability=correction,
+                        breakout_probability=breakout,
+                        entry_status="Entry 1 فعال - انتظار مقاومت بعدی"
                     )
 
 
