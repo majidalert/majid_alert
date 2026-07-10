@@ -609,7 +609,6 @@ class MarketScanner:
 
 
                 
-
                         )
                     alerts.append(
                         message
