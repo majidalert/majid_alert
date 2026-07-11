@@ -228,17 +228,56 @@ def make_message(
 
 
 
+    if kwargs.get("weekly_growth"):
+
+        msg += (
+            "\n📊 وضعیت روند هفتگی\n"
+
+            f"📈 رشد هفتگی : "
+            f"{kwargs.get('weekly_growth'):.2f}%\n"
+        )
+
+
     if kwargs.get("ath"):
 
         msg += (
 
             "\n🏔 ATH WEEKLY\n"
 
-            f"🔝 سقف تاریخی: "
+            f"🔝 سقف تاریخی : "
             f"{format_number(kwargs.get('ath'))}\n"
 
-            f"📊 موقعیت نسبت به ATH: "
+            f"📊 موقعیت نسبت به ATH : "
             f"{kwargs.get('ath_position')}%\n"
+
+        )
+
+
+    if kwargs.get("multitrade_score"):
+
+        if kwargs.get("multitrade_score") >= 90:
+
+            quality = "🔥 فوق‌العاده"
+
+        elif kwargs.get("multitrade_score") >= 80:
+
+            quality = "✅ عالی"
+
+        elif kwargs.get("multitrade_score") >= 70:
+
+            quality = "🟡 خوب"
+
+        else:
+
+            quality = "⚪ معمولی"
+
+        msg += (
+
+            f"\n🎯 MultiTrade Score : "
+            f"{kwargs.get('multitrade_score')}/100\n"
+
+            f"🏆 کیفیت سیگنال : "
+            f"{quality}\n"
 
         )
 
