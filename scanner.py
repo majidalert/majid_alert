@@ -116,7 +116,53 @@ class MarketScanner:
             float(c[3])
             for c in candles
         )
-    async def get_average_volume(self, symbol):
+
+
+    # ===============================
+    # WEEKLY ATH ANALYSIS
+    # ===============================
+
+    async def get_weekly_ath(self, symbol):
+
+        candles = await self.get_candles(
+            symbol,
+            "W",
+            200
+        )
+
+        if not candles:
+            return None
+
+        return max(
+            float(c[2])
+            for c in candles
+        )
+
+
+    async def ath_check(
+        self,
+        symbol,
+        price
+    ):
+
+        ath = await self.get_weekly_ath(
+            symbol
+        )
+
+        if not ath:
+            return None, 0
+
+
+        position = (
+            price / ath
+        ) * 100
+
+
+        return (
+            ath,
+            round(position, 2)
+        )
+            async def get_average_volume(self, symbol):
 
         candles = await self.get_candles(
             symbol,
@@ -136,7 +182,11 @@ class MarketScanner:
 
 
 
-    async def volume_check(self, symbol, volume):
+    async def volume_check(
+        self,
+        symbol,
+        volume
+    ):
 
         avg = await self.get_average_volume(
             symbol
@@ -149,7 +199,11 @@ class MarketScanner:
 
 
 
-    async def resistance_levels(self, symbol, price):
+    async def resistance_levels(
+        self,
+        symbol,
+        price
+    ):
 
         raw = []
 
@@ -200,11 +254,18 @@ class MarketScanner:
 
             found = False
 
+
             for r in merged:
 
-                diff = abs(
-                    item["price"] - r["price"]
-                ) / r["price"] * 100
+                diff = (
+                    abs(
+                        item["price"]
+                        -
+                        r["price"]
+                    )
+                    /
+                    r["price"]
+                ) * 100
 
 
                 if diff < 1:
@@ -270,17 +331,14 @@ class MarketScanner:
 
 
         if price >= resistance:
-
             score += 50
 
 
         if volume:
-
             score += 30
 
 
         if price > resistance * 1.01:
-
             score += 20
 
 
@@ -301,17 +359,14 @@ class MarketScanner:
 
 
         if stretch >= 70:
-
             score += 50
 
 
         if near_resistance:
-
             score += 30
 
 
         if stretch >= 90:
-
             score += 20
 
 
@@ -319,10 +374,7 @@ class MarketScanner:
             score,
             100
         )
-
-
-
-    async def pump_check(
+            async def pump_check(
         self,
         price,
         low
@@ -361,13 +413,17 @@ class MarketScanner:
 
 
         return drop >= DUMP_PERCENT
+
+
+
     async def multittrade_score(
         self,
         stretch,
         correction,
         breakout,
         volume,
-        resistance
+        resistance,
+        ath_position
     ):
 
         score = 0
@@ -378,7 +434,7 @@ class MarketScanner:
 
 
         if correction >= 60:
-            score += 25
+            score += 20
 
 
         if breakout < 50:
@@ -390,6 +446,11 @@ class MarketScanner:
 
 
         if resistance:
+            score += 5
+
+
+        # ATH WEEKLY BONUS
+        if ath_position >= 60:
             score += 10
 
 
@@ -404,22 +465,28 @@ class MarketScanner:
         self,
         stretch,
         correction,
-        breakout
+        breakout,
+        ath_position
     ):
 
         score = 0
 
 
         if stretch >= 70:
-            score += 40
+            score += 30
 
 
         if correction >= 60:
-            score += 30
+            score += 25
 
 
         if breakout < 50:
-            score += 30
+            score += 25
+
+
+        # قیمت نزدیک سقف تاریخی هفتگی
+        if ath_position >= 60:
+            score += 20
 
 
         return min(
@@ -454,7 +521,7 @@ class MarketScanner:
                 6
             )
         }
-    async def scan(self):
+            async def scan(self):
 
         alerts = []
 
@@ -477,10 +544,6 @@ class MarketScanner:
                     ticker.get("lastPrice")
                 )
 
-                high = float(
-                    ticker.get("highPrice24h")
-                )
-
                 low = float(
                     ticker.get("lowPrice24h")
                 )
@@ -501,39 +564,42 @@ class MarketScanner:
                 ) * 100
 
 
-                # Ø­Ø°Ù Ø§Ø±Ø²ÙØ§Û Ú©Ù Ø­Ø±Ú©Øª
+
+                # =========================
+                # WEEKLY ATH CHECK
+                # =========================
+
+                ath, ath_position = await self.ath_check(
+                    symbol,
+                    price
+                )
+
+
+                if not ath:
+                    continue
+
+
+                # حداقل 60 درصد مسیر ATH
+                # یعنی فاصله حداکثر 40 درصد
+
+                if ath_position < 60:
+                    continue
+
+
 
                 resistance = await self.resistance_levels(
                     symbol,
                     price
                 )
 
-                if not resistance:
-                    continue
-
-                highest_resistance = max(r["price"] for r in resistance)
-
-                growth_to_top = (
-                    (price - low) /
-                    (highest_resistance - low)
-                ) * 100
-
-                if growth_to_top < 30:
-                    continue
-
-
-
-                resistance = await self.resistance_levels(
-                    symbol,
-                    price
-                )
-
 
                 if not resistance:
                     continue
+
 
 
                 r1 = resistance[0]["price"]
+
 
 
                 stretch = await self.stretch_check(
@@ -543,10 +609,12 @@ class MarketScanner:
                 )
 
 
+
                 correction = await self.correction_probability(
                     stretch,
                     True
                 )
+
 
 
                 breakout = await self.breakout_probability(
@@ -556,10 +624,12 @@ class MarketScanner:
                 )
 
 
+
                 volume_ok = await self.volume_check(
                     symbol,
                     volume
                 )
+
 
 
                 multi_score = await self.multittrade_score(
@@ -567,15 +637,19 @@ class MarketScanner:
                     correction,
                     breakout,
                     volume_ok,
-                    True
+                    True,
+                    ath_position
                 )
+
 
 
                 mss = await self.mss_score(
                     stretch,
                     correction,
-                    breakout
+                    breakout,
+                    ath_position
                 )
+
 
 
                 if multi_score < 70:
@@ -584,9 +658,13 @@ class MarketScanner:
 
                 if mss < 70:
                     continue
+
+
+
                 tp = await self.calculate_tp(
                     price
                 )
+
 
 
                 if self.state.can_send(
@@ -595,43 +673,46 @@ class MarketScanner:
                 ):
 
 
-                    title = (
-                        "ð¥ SHORT MULTITRADE SETUP"
-                    )
-
-
-                    resistance_text = ""
-
-
-                    for r in resistance[:3]:
-
-                        resistance_text += (
-                            f"\nð¸ {r['name']} : "
-                            f"{r['price']}"
-                        )
-
-
-
                     message = make_message(
-                        title,
+
+                        "🟥 SHORT MULTITRADE SETUP",
+
                         symbol,
+
                         price,
+
                         rise,
+
                         volume,
+
                         mss,
+
                         resistance=resistance,
+
                         extension=stretch,
+
                         multitrade_score=multi_score,
+
                         tp1=tp["TP1"],
+
                         tp2=tp["TP2"],
+
                         tp3=tp["TP3"],
+
                         correction_probability=correction,
+
                         breakout_probability=breakout,
-                        entry_status="Entry 1 ÙØ¹Ø§Ù - Ø§ÙØªØ¸Ø§Ø± ÙÙØ§ÙÙØª Ø¨Ø¹Ø¯Û"
+
+                        entry_status=
+                        "Entry 1 فعال - انتظار مقاومت بعدی",
+
+                        ath=ath,
+
+                        ath_position=ath_position
                     )
 
 
-                
+
                     alerts.append(
                         message
                     )
@@ -652,9 +733,7 @@ class MarketScanner:
             )
 
 
-
         return alerts
-
 
 
 
