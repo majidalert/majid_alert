@@ -177,7 +177,7 @@ class MarketScanner:
             float(c[2])
             for c in candles
         )
-        async def ath_check(
+    async def ath_check(
         self,
         symbol,
         price
@@ -187,15 +187,12 @@ class MarketScanner:
             symbol
         )
 
-
         if not ath:
             return None, 0
-
 
         position = (
             price / ath
         ) * 100
-
 
         return (
             ath,
