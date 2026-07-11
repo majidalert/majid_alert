@@ -350,7 +350,7 @@ class MarketScanner:
 
 
         return merged[:3]
-            async def stretch_check(
+    async def stretch_check(
         self,
         symbol,
         price,
@@ -568,7 +568,7 @@ class MarketScanner:
             )
 
         }
-            async def scan(self):
+    async def scan(self):
 
         alerts = []
 
