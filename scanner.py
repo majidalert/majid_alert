@@ -22,17 +22,25 @@ class MarketScanner:
         return self.session
 
 
+
     async def get_symbols(self):
 
         session = await self.get_session()
 
         async with session.get(
-            BASE_URL + "/v5/market/instruments-info?category=linear"
+            BASE_URL +
+            "/v5/market/instruments-info?category=linear"
         ) as response:
 
-            data = await response.json(content_type=None)
+            data = await response.json(
+                content_type=None
+            )
 
-            result = data.get("result", {}).get("list", [])
+            result = (
+                data
+                .get("result", {})
+                .get("list", [])
+            )
 
             return [
                 c["symbol"]
@@ -41,23 +49,35 @@ class MarketScanner:
             ]
 
 
-    async def get_ticker(self, symbol):
+
+    async def get_ticker(
+        self,
+        symbol
+    ):
 
         session = await self.get_session()
 
         async with session.get(
             BASE_URL +
-            f"/v5/market/tickers?category=linear&symbol={symbol}"
+            f"/v5/market/tickers?"
+            f"category=linear&symbol={symbol}"
         ) as response:
 
-            data = await response.json(content_type=None)
+            data = await response.json(
+                content_type=None
+            )
 
-            result = data.get("result", {}).get("list", [])
+            result = (
+                data
+                .get("result", {})
+                .get("list", [])
+            )
 
             if not result:
                 return None
 
             return result[0]
+
 
 
     async def get_candles(
@@ -72,21 +92,32 @@ class MarketScanner:
         url = (
             BASE_URL +
             f"/v5/market/kline?"
-            f"category=linear&symbol={symbol}"
-            f"&interval={interval}&limit={limit}"
+            f"category=linear"
+            f"&symbol={symbol}"
+            f"&interval={interval}"
+            f"&limit={limit}"
         )
+
 
         async with session.get(url) as response:
 
-            data = await response.json(content_type=None)
+            data = await response.json(
+                content_type=None
+            )
 
             return (
-                data.get("result", {})
+                data
+                .get("result", {})
                 .get("list", [])
             )
 
 
-    async def get_high(self, symbol, interval):
+
+    async def get_high(
+        self,
+        symbol,
+        interval
+    ):
 
         candles = await self.get_candles(
             symbol,
@@ -95,6 +126,7 @@ class MarketScanner:
 
         if not candles:
             return None
+
 
         return max(
             float(c[2])
@@ -102,7 +134,12 @@ class MarketScanner:
         )
 
 
-    async def get_low(self, symbol, interval):
+
+    async def get_low(
+        self,
+        symbol,
+        interval
+    ):
 
         candles = await self.get_candles(
             symbol,
@@ -111,6 +148,7 @@ class MarketScanner:
 
         if not candles:
             return None
+
 
         return min(
             float(c[3])
@@ -118,11 +156,11 @@ class MarketScanner:
         )
 
 
-    # ===============================
-    # WEEKLY ATH ANALYSIS
-    # ===============================
 
-    async def get_weekly_ath(self, symbol):
+    async def get_weekly_ath(
+        self,
+        symbol
+    ):
 
         candles = await self.get_candles(
             symbol,
@@ -130,16 +168,16 @@ class MarketScanner:
             200
         )
 
+
         if not candles:
             return None
+
 
         return max(
             float(c[2])
             for c in candles
         )
-
-
-    async def ath_check(
+            async def ath_check(
         self,
         symbol,
         price
@@ -148,6 +186,7 @@ class MarketScanner:
         ath = await self.get_weekly_ath(
             symbol
         )
+
 
         if not ath:
             return None, 0
@@ -162,7 +201,13 @@ class MarketScanner:
             ath,
             round(position, 2)
         )
-            async def get_average_volume(self, symbol):
+
+
+
+    async def get_average_volume(
+        self,
+        symbol
+    ):
 
         candles = await self.get_candles(
             symbol,
@@ -170,15 +215,22 @@ class MarketScanner:
             50
         )
 
+
         if not candles:
             return 0
+
 
         volumes = [
             float(c[6])
             for c in candles
         ]
 
-        return sum(volumes) / len(volumes)
+
+        return (
+            sum(volumes)
+            /
+            len(volumes)
+        )
 
 
 
@@ -192,8 +244,10 @@ class MarketScanner:
             symbol
         )
 
+
         if avg <= 0:
             return False
+
 
         return volume >= avg * 2
 
@@ -207,11 +261,17 @@ class MarketScanner:
 
         raw = []
 
+
         levels = [
+
             ("4H", "240"),
+
             ("1D", "D"),
+
             ("3D", "3D"),
+
             ("1W", "W")
+
         ]
 
 
@@ -224,6 +284,7 @@ class MarketScanner:
                     interval
                 )
 
+
                 if high and high > price:
 
                     raw.append(
@@ -233,6 +294,7 @@ class MarketScanner:
                         }
                     )
 
+
             except Exception as e:
 
                 print(
@@ -240,6 +302,7 @@ class MarketScanner:
                     symbol,
                     e
                 )
+
 
 
         raw.sort(
@@ -270,9 +333,16 @@ class MarketScanner:
 
                 if diff < 1:
 
-                    r["name"] += "/" + item["name"]
+                    r["name"] += (
+                        "/"
+                        +
+                        item["name"]
+                    )
+
                     found = True
+
                     break
+
 
 
             if not found:
@@ -283,10 +353,7 @@ class MarketScanner:
 
 
         return merged[:3]
-
-
-
-    async def stretch_check(
+            async def stretch_check(
         self,
         symbol,
         price,
@@ -297,6 +364,7 @@ class MarketScanner:
             symbol,
             "D"
         )
+
 
         if not low:
             return 0
@@ -331,14 +399,17 @@ class MarketScanner:
 
 
         if price >= resistance:
+
             score += 50
 
 
         if volume:
+
             score += 30
 
 
         if price > resistance * 1.01:
+
             score += 20
 
 
@@ -359,14 +430,17 @@ class MarketScanner:
 
 
         if stretch >= 70:
+
             score += 50
 
 
         if near_resistance:
+
             score += 30
 
 
         if stretch >= 90:
+
             score += 20
 
 
@@ -374,45 +448,6 @@ class MarketScanner:
             score,
             100
         )
-            async def pump_check(
-        self,
-        price,
-        low
-    ):
-
-        if low <= 0:
-            return False
-
-
-        change = (
-            (price - low)
-            /
-            low
-        ) * 100
-
-
-        return change >= PUMP_PERCENT
-
-
-
-    async def dump_check(
-        self,
-        price,
-        high
-    ):
-
-        if high <= 0:
-            return False
-
-
-        drop = (
-            (high - price)
-            /
-            high
-        ) * 100
-
-
-        return drop >= DUMP_PERCENT
 
 
 
@@ -430,27 +465,34 @@ class MarketScanner:
 
 
         if stretch >= 70:
+
             score += 30
 
 
         if correction >= 60:
+
             score += 20
 
 
         if breakout < 50:
+
             score += 20
 
 
         if volume:
+
             score += 15
 
 
         if resistance:
+
             score += 5
 
 
-        # ATH WEEKLY BONUS
+        # Weekly ATH bonus
+
         if ath_position >= 60:
+
             score += 10
 
 
@@ -473,19 +515,24 @@ class MarketScanner:
 
 
         if stretch >= 70:
+
             score += 30
 
 
         if correction >= 60:
+
             score += 25
 
 
         if breakout < 50:
+
             score += 25
 
 
-        # قیمت نزدیک سقف تاریخی هفتگی
+        # نزدیک بودن به سقف تاریخی
+
         if ath_position >= 60:
+
             score += 20
 
 
@@ -509,17 +556,20 @@ class MarketScanner:
                 6
             ),
 
+
             "TP2":
             round(
                 price * 0.94,
                 6
             ),
 
+
             "TP3":
             round(
                 price * 0.90,
                 6
             )
+
         }
             async def scan(self):
 
@@ -536,25 +586,31 @@ class MarketScanner:
                     symbol
                 )
 
+
                 if not ticker:
                     continue
+
 
 
                 price = float(
                     ticker.get("lastPrice")
                 )
 
+
                 low = float(
                     ticker.get("lowPrice24h")
                 )
+
 
                 volume = float(
                     ticker.get("turnover24h")
                 )
 
 
+
                 if low <= 0:
                     continue
+
 
 
                 rise = (
@@ -565,9 +621,9 @@ class MarketScanner:
 
 
 
-                # =========================
-                # WEEKLY ATH CHECK
-                # =========================
+                # =====================
+                # WEEKLY ATH FILTER
+                # =====================
 
                 ath, ath_position = await self.ath_check(
                     symbol,
@@ -579,8 +635,7 @@ class MarketScanner:
                     continue
 
 
-                # حداقل 60 درصد مسیر ATH
-                # یعنی فاصله حداکثر 40 درصد
+                # حداقل 60 درصد ATH
 
                 if ath_position < 60:
                     continue
@@ -709,8 +764,8 @@ class MarketScanner:
                         ath=ath,
 
                         ath_position=ath_position
-                    )
 
+                    )
 
 
                     alerts.append(
