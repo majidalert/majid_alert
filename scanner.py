@@ -177,7 +177,7 @@ class MarketScanner:
             float(c[2])
             for c in candles
         )
-            async def ath_check(
+        async def ath_check(
         self,
         symbol,
         price
