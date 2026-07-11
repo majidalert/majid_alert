@@ -24,9 +24,23 @@ def now():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
-def make_message(title, symbol, price, change, volume, score):
+def make_message(
+    title,
+    symbol,
+    price,
+    change,
+    volume,
+    score,
+    resistance=None,
+    support=None,
+    signal=None,
+    pump=None,
+    dump=None,
+    unusual_volume=None,
+    **kwargs
+):
 
-    return (
+    msg = (
         f"🚨 MAJID ALERT AI\n\n"
         f"{title}\n\n"
         f"🪙 ارز: {symbol}\n"
@@ -34,5 +48,26 @@ def make_message(title, symbol, price, change, volume, score):
         f"📈 تغییر: {change:.2f}%\n"
         f"📦 حجم: {format_number(volume)}\n"
         f"⭐ امتیاز: {score}/100\n"
-        f"🕒 {now()}"
     )
+
+    if resistance:
+        msg += f"🔴 مقاومت: {resistance}\n"
+
+    if support:
+        msg += f"🟢 حمایت: {support}\n"
+
+    if signal:
+        msg += f"🎯 سیگنال: {signal}\n"
+
+    if pump:
+        msg += "🚀 پامپ غیرعادی تشخیص داده شد\n"
+
+    if dump:
+        msg += "⚠️ دامپ غیرعادی تشخیص داده شد\n"
+
+    if unusual_volume:
+        msg += "📊 حجم غیرعادی تشخیص داده شد\n"
+
+    msg += f"\n🕒 {now()}"
+
+    return msg
