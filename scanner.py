@@ -22,7 +22,6 @@ class MarketScanner:
         return self.session
 
 
-
     async def get_symbols(self):
 
         session = await self.get_session()
@@ -32,13 +31,10 @@ class MarketScanner:
             "/v5/market/instruments-info?category=linear"
         ) as response:
 
-            data = await response.json(
-                content_type=None
-            )
+            data = await response.json(content_type=None)
 
             result = (
-                data
-                .get("result", {})
+                data.get("result", {})
                 .get("list", [])
             )
 
@@ -47,7 +43,6 @@ class MarketScanner:
                 for c in result
                 if c.get("quoteCoin") == "USDT"
             ]
-
 
 
     async def get_ticker(
@@ -59,17 +54,13 @@ class MarketScanner:
 
         async with session.get(
             BASE_URL +
-            f"/v5/market/tickers?"
-            f"category=linear&symbol={symbol}"
+            f"/v5/market/tickers?category=linear&symbol={symbol}"
         ) as response:
 
-            data = await response.json(
-                content_type=None
-            )
+            data = await response.json(content_type=None)
 
             result = (
-                data
-                .get("result", {})
+                data.get("result", {})
                 .get("list", [])
             )
 
@@ -77,7 +68,6 @@ class MarketScanner:
                 return None
 
             return result[0]
-
 
 
     async def get_candles(
@@ -98,19 +88,14 @@ class MarketScanner:
             f"&limit={limit}"
         )
 
-
         async with session.get(url) as response:
 
-            data = await response.json(
-                content_type=None
-            )
+            data = await response.json(content_type=None)
 
             return (
-                data
-                .get("result", {})
+                data.get("result", {})
                 .get("list", [])
             )
-
 
 
     async def get_high(
@@ -127,12 +112,10 @@ class MarketScanner:
         if not candles:
             return None
 
-
         return max(
             float(c[2])
             for c in candles
         )
-
 
 
     async def get_low(
@@ -149,12 +132,10 @@ class MarketScanner:
         if not candles:
             return None
 
-
         return min(
             float(c[3])
             for c in candles
         )
-
 
 
     async def get_weekly_ath(
@@ -168,15 +149,15 @@ class MarketScanner:
             200
         )
 
-
         if not candles:
             return None
-
 
         return max(
             float(c[2])
             for c in candles
         )
+
+
     async def ath_check(
         self,
         symbol,
@@ -190,17 +171,62 @@ class MarketScanner:
         if not ath:
             return None, 0
 
-        position = (
-            price / ath
-        ) * 100
+        position = (price / ath) * 100
 
-        return (
-            ath,
-            round(position, 2)
+        return ath, round(position, 2)
+
+
+    async def weekly_growth(
+        self,
+        symbol,
+        price
+    ):
+
+        weekly_low = await self.get_low(
+            symbol,
+            "W"
+        )
+
+        if not weekly_low:
+            return 0
+
+        return round(
+            ((price - weekly_low) / weekly_low) * 100,
+            2
         )
 
 
+    async def weekly_trend(
+        self,
+        symbol
+    ):
 
+        candles = await self.get_candles(
+            symbol,
+            "W",
+            6
+        )
+
+        if len(candles) < 4:
+            return False
+
+        candles = list(reversed(candles))
+
+        highs = [
+            float(c[2])
+            for c in candles
+        ]
+
+        lows = [
+            float(c[3])
+            for c in candles
+        ]
+
+        return (
+            highs[-1] > highs[-2] and
+            highs[-2] > highs[-3] and
+            lows[-1] > lows[-2]
+        )
     async def get_average_volume(
         self,
         symbol
@@ -212,23 +238,15 @@ class MarketScanner:
             50
         )
 
-
         if not candles:
             return 0
-
 
         volumes = [
             float(c[6])
             for c in candles
         ]
 
-
-        return (
-            sum(volumes)
-            /
-            len(volumes)
-        )
-
+        return sum(volumes) / len(volumes)
 
 
     async def volume_check(
@@ -241,13 +259,10 @@ class MarketScanner:
             symbol
         )
 
-
         if avg <= 0:
             return False
 
-
         return volume >= avg * 2
-
 
 
     async def resistance_levels(
@@ -258,19 +273,14 @@ class MarketScanner:
 
         raw = []
 
-
         levels = [
 
             ("4H", "240"),
-
             ("1D", "D"),
-
             ("3D", "3D"),
-
             ("1W", "W")
 
         ]
-
 
         for name, interval in levels:
 
@@ -281,7 +291,6 @@ class MarketScanner:
                     interval
                 )
 
-
                 if high and high > price:
 
                     raw.append(
@@ -291,7 +300,6 @@ class MarketScanner:
                         }
                     )
 
-
             except Exception as e:
 
                 print(
@@ -300,56 +308,60 @@ class MarketScanner:
                     e
                 )
 
-
-
         raw.sort(
             key=lambda x: x["price"]
         )
 
-
         merged = []
-
 
         for item in raw:
 
             found = False
 
-
             for r in merged:
 
                 diff = (
                     abs(
-                        item["price"]
-                        -
+                        item["price"] -
                         r["price"]
                     )
                     /
                     r["price"]
                 ) * 100
 
-
                 if diff < 1:
 
-                    r["name"] += (
-                        "/"
-                        +
-                        item["name"]
-                    )
+                    r["name"] += "/" + item["name"]
 
                     found = True
 
                     break
 
-
-
             if not found:
 
-                merged.append(
-                    item
-                )
-
+                merged.append(item)
 
         return merged[:3]
+
+
+    async def near_resistance(
+        self,
+        price,
+        resistance
+    ):
+
+        if resistance <= price:
+            return False
+
+        distance = (
+            (resistance - price)
+            /
+            price
+        ) * 100
+
+        return distance <= 12
+
+
     async def stretch_check(
         self,
         symbol,
@@ -362,14 +374,11 @@ class MarketScanner:
             "D"
         )
 
-
         if not low:
             return 0
 
-
         if resistance <= low:
             return 0
-
 
         stretch = (
             (price - low)
@@ -377,75 +386,50 @@ class MarketScanner:
             (resistance - low)
         ) * 100
 
-
         return round(
             stretch,
             2
         )
-
-
-
     async def breakout_probability(
         self,
         price,
         resistance,
-        volume
+        volume_ok
     ):
 
         score = 0
 
+        if price >= resistance * 0.98:
+            score += 40
+
+        if volume_ok:
+            score += 35
 
         if price >= resistance:
+            score += 25
 
-            score += 50
-
-
-        if volume:
-
-            score += 30
-
-
-        if price > resistance * 1.01:
-
-            score += 20
-
-
-        return min(
-            score,
-            100
-        )
-
+        return min(score, 100)
 
 
     async def correction_probability(
         self,
         stretch,
-        near_resistance
+        near_resistance,
+        ath_position
     ):
 
         score = 0
 
-
         if stretch >= 70:
-
-            score += 50
-
-
-        if near_resistance:
-
             score += 30
 
+        if near_resistance:
+            score += 30
 
-        if stretch >= 90:
+        if ath_position >= 80:
+            score += 40
 
-            score += 20
-
-
-        return min(
-            score,
-            100
-        )
-
+        return min(score, 100)
 
 
     async def multittrade_score(
@@ -453,51 +437,32 @@ class MarketScanner:
         stretch,
         correction,
         breakout,
-        volume,
-        resistance,
-        ath_position
+        volume_ok,
+        ath_position,
+        weekly_growth
     ):
 
         score = 0
 
-
         if stretch >= 70:
-
-            score += 30
-
-
-        if correction >= 60:
-
             score += 20
 
-
-        if breakout < 50:
-
+        if correction >= 70:
             score += 20
 
-
-        if volume:
-
+        if breakout <= 40:
             score += 15
 
+        if volume_ok:
+            score += 15
 
-        if resistance:
+        if ath_position >= 80:
+            score += 15
 
-            score += 5
+        if weekly_growth >= 40:
+            score += 15
 
-
-        # Weekly ATH bonus
-
-        if ath_position >= 60:
-
-            score += 10
-
-
-        return min(
-            score,
-            100
-        )
-
+        return min(score, 100)
 
 
     async def mss_score(
@@ -505,39 +470,28 @@ class MarketScanner:
         stretch,
         correction,
         breakout,
-        ath_position
+        ath_position,
+        weekly_growth
     ):
 
         score = 0
 
-
         if stretch >= 70:
-
-            score += 30
-
-
-        if correction >= 60:
-
             score += 25
 
-
-        if breakout < 50:
-
+        if correction >= 70:
             score += 25
 
+        if breakout <= 40:
+            score += 15
 
-        # نزدیک بودن به سقف تاریخی
-
-        if ath_position >= 60:
-
+        if ath_position >= 80:
             score += 20
 
+        if weekly_growth >= 40:
+            score += 15
 
-        return min(
-            score,
-            100
-        )
-
+        return min(score, 100)
 
 
     async def calculate_tp(
@@ -547,22 +501,17 @@ class MarketScanner:
 
         return {
 
-            "TP1":
-            round(
+            "TP1": round(
                 price * 0.97,
                 6
             ),
 
-
-            "TP2":
-            round(
+            "TP2": round(
                 price * 0.94,
                 6
             ),
 
-
-            "TP3":
-            round(
+            "TP3": round(
                 price * 0.90,
                 6
             )
@@ -574,7 +523,6 @@ class MarketScanner:
 
         symbols = await self.get_symbols()
 
-
         for symbol in symbols:
 
             try:
@@ -583,76 +531,79 @@ class MarketScanner:
                     symbol
                 )
 
-
                 if not ticker:
                     continue
-
-
 
                 price = float(
                     ticker.get("lastPrice")
                 )
 
-
-                low = float(
+                low24 = float(
                     ticker.get("lowPrice24h")
                 )
-
 
                 volume = float(
                     ticker.get("turnover24h")
                 )
 
-
-
-                if low <= 0:
+                if low24 <= 0:
                     continue
 
-
-
                 rise = (
-                    (price - low)
+                    (price - low24)
                     /
-                    low
+                    low24
                 ) * 100
 
+                # -------------------------
+                # Weekly Trend Filter
+                # -------------------------
 
+                trend = await self.weekly_trend(
+                    symbol
+                )
 
-                # =====================
-                # WEEKLY ATH FILTER
-                # =====================
+                if not trend:
+                    continue
 
                 ath, ath_position = await self.ath_check(
                     symbol,
                     price
                 )
 
-
                 if not ath:
                     continue
 
+                weekly_growth = await self.weekly_growth(
+                    symbol,
+                    price
+                )
 
-                # حداقل 60 درصد ATH
-
-                if ath_position < 60:
+                # فقط ارزهایی که حداقل ۴۰٪ از کف هفتگی رشد کرده‌اند
+                if weekly_growth < 40:
                     continue
 
-
+                # نزدیک ATH باشد
+                if ath_position < 60:
+                    continue
 
                 resistance = await self.resistance_levels(
                     symbol,
                     price
                 )
 
-
                 if not resistance:
                     continue
 
-
-
                 r1 = resistance[0]["price"]
 
+                near = await self.near_resistance(
+                    price,
+                    r1
+                )
 
+                if not near:
+                    continue
 
                 stretch = await self.stretch_check(
                     symbol,
@@ -660,70 +611,53 @@ class MarketScanner:
                     r1
                 )
 
-
-
-                correction = await self.correction_probability(
-                    stretch,
-                    True
-                )
-
-
-
-                breakout = await self.breakout_probability(
-                    price,
-                    r1,
-                    volume
-                )
-
-
-
                 volume_ok = await self.volume_check(
                     symbol,
                     volume
                 )
 
+                correction = await self.correction_probability(
+                    stretch,
+                    near,
+                    ath_position
+                )
 
+                breakout = await self.breakout_probability(
+                    price,
+                    r1,
+                    volume_ok
+                )
 
                 multi_score = await self.multittrade_score(
                     stretch,
                     correction,
                     breakout,
                     volume_ok,
-                    True,
-                    ath_position
+                    ath_position,
+                    weekly_growth
                 )
-
-
 
                 mss = await self.mss_score(
                     stretch,
                     correction,
                     breakout,
-                    ath_position
+                    ath_position,
+                    weekly_growth
                 )
-
-
 
                 if multi_score < 70:
                     continue
 
-
                 if mss < 70:
                     continue
-
-
 
                 tp = await self.calculate_tp(
                     price
                 )
-
-
-
                 if self.state.can_send(
                     symbol,
                     "SHORT"
                 ):
-
 
                     message = make_message(
 
@@ -745,6 +679,12 @@ class MarketScanner:
 
                         multitrade_score=multi_score,
 
+                        weekly_growth=weekly_growth,
+
+                        ath=ath,
+
+                        ath_position=ath_position,
+
                         tp1=tp["TP1"],
 
                         tp2=tp["TP2"],
@@ -756,20 +696,13 @@ class MarketScanner:
                         breakout_probability=breakout,
 
                         entry_status=
-                        "Entry 1 فعال - انتظار مقاومت بعدی",
-
-                        ath=ath,
-
-                        ath_position=ath_position
+                        "Entry 1 فعال - انتظار مقاومت بعدی"
 
                     )
-
 
                     alerts.append(
                         message
                     )
-
-
 
             except Exception as e:
 
@@ -778,15 +711,11 @@ class MarketScanner:
                     e
                 )
 
-
-
             await asyncio.sleep(
                 0.05
             )
 
-
         return alerts
-
 
 
     async def close(self):
