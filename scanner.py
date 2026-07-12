@@ -702,7 +702,9 @@ class MarketScanner:
 
                 if not near:
                     continue
-                                    stretch = await self.stretch_check(
+                    
+                    
+                stretch = await self.stretch_check(
                     symbol,
                     price,
                     r1
