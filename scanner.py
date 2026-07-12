@@ -464,7 +464,7 @@ class MarketScanner:
             score,
             100
         )
-            async def multittrade_score(
+    async def multittrade_score(
         self,
         stretch,
         correction,
