@@ -653,11 +653,8 @@ class MarketScanner:
                     weekly_growth
                 )
 
-                if multi_score < 70:
-                    continue
-
-                if mss < 70:
-                    continue
+                if (multi_score + mss) / 2 < 68:
+                     continue
 
                 tp = await self.calculate_tp(
                     price
