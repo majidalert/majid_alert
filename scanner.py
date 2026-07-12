@@ -580,8 +580,12 @@ class MarketScanner:
                 )
 
                 # فقط ارزهایی که حداقل ۴۰٪ از کف هفتگی رشد کرده‌اند
-                if weekly_growth < 40:
-                    continue
+                if weekly_growth >= 40:
+                    mss += 15
+                elif weekly_growth >= 20:
+                    mss += 10
+                elif weekly_growth >= 10:
+                    mss += 5
 
                 # نزدیک ATH باشد
                 if ath_position < 60:
