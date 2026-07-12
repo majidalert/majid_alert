@@ -563,8 +563,8 @@ class MarketScanner:
                     symbol
                 )
 
-                if not trend:
-                    continue
+                if trend:
+                    mss += 10
 
                 ath, ath_position = await self.ath_check(
                     symbol,
