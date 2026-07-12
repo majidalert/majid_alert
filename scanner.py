@@ -136,7 +136,9 @@ class MarketScanner:
             float(c[3])
             for c in candles
         )
-            async def get_weekly_ath(
+
+
+    async def weekly_trend(
         self,
         symbol
     ):
@@ -263,7 +265,9 @@ class MarketScanner:
             return False
 
         return volume >= avg * VOLUME_SPIKE_MULTIPLIER
-            async def resistance_levels(
+
+
+    async def resistance_levels(
         self,
         symbol,
         price
