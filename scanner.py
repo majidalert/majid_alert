@@ -588,8 +588,12 @@ class MarketScanner:
                     mss += 5
 
                 # نزدیک ATH باشد
-                if ath_position < 60:
-                    continue
+                if ath_position >= 90:
+                    mss += 20
+                elif ath_position >= 75:
+                    mss += 15
+                elif ath_position >= 60:
+                    mss += 10
 
                 resistance = await self.resistance_levels(
                     symbol,
