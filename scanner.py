@@ -655,8 +655,9 @@ class MarketScanner:
                     price
                 )
                 if self.state.can_send(
-                    symbol,
-                    "SHORT"
+                     symbol,
+                     "SHORT",
+                     price
                 ):
 
                     message = make_message(
