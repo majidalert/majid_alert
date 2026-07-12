@@ -194,7 +194,7 @@ class MarketScanner:
         )
 
 
-    async def weekly_trend(
+    async def get_weekly_ath(
         self,
         symbol
     ):
