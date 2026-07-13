@@ -204,6 +204,25 @@ class MarketScanner:
         candles = await self.get_candles(
             symbol,
             "W",
+            200
+        )
+
+        if not candles:
+            return None
+
+        return max(
+            float(c[2])
+            for c in candles
+        )
+        
+    async def weekly_trend(
+        self,
+        symbol
+    ):
+
+        candles = await self.get_candles(
+            symbol,
+            "W",
             6
         )
 
@@ -212,22 +231,14 @@ class MarketScanner:
 
         candles = list(reversed(candles))
 
-        highs = [
-            float(c[2])
-            for c in candles
-        ]
-
-        lows = [
-            float(c[3])
-            for c in candles
-        ]
+        highs = [float(c[2]) for c in candles]
+        lows = [float(c[3]) for c in candles]
 
         return (
             highs[-1] > highs[-2]
             and highs[-2] > highs[-3]
             and lows[-1] > lows[-2]
         )
-
 
     async def get_average_volume(
         self,
@@ -264,7 +275,7 @@ class MarketScanner:
         if avg <= 0:
             return False
 
-        return volume >= avg * VOLUME_SPIKE_MULTIPLIER
+        return volume >= avg * VOLUME_MULTIPLIER
 
 
     async def resistance_levels(
@@ -370,7 +381,7 @@ class MarketScanner:
         ) * 100
 
 
-        return distance <= RESISTANCE_DISTANCE_PERCENT
+        return distance <= FOUR_HOUR_RESISTANCE_DISTANCE
 
 
 
@@ -758,8 +769,8 @@ class MarketScanner:
                 )
 
 
-                if final_score < MIN_SIGNAL_SCORE:
-                    continue
+                if final_score < MIN_SCORE:
+                     continue
 
 
 
