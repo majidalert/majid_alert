@@ -698,7 +698,8 @@ class MarketScanner:
 
 
                 if not resistance:
-                    continue
+                     print(symbol, "رد شد: resistance")
+                     continue
 
 
                 r1 = resistance[0]["price"]
@@ -712,7 +713,8 @@ class MarketScanner:
 
 
                 if not near:
-                    continue
+                     print(symbol, "رد شد: near")
+                     continue
                     
                     
                 stretch = await self.stretch_check(
@@ -770,6 +772,17 @@ class MarketScanner:
 
 
                 if final_score < MIN_SCORE:
+                     print(
+                         symbol,
+                         "Score=",
+                         final_score,
+                         "Stretch=",
+                         stretch,
+                         "Weekly=",
+                         weekly_growth,
+                         "ATH=",
+                         ath_position,
+                     )
                      continue
 
 
