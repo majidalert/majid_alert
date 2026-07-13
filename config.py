@@ -1,13 +1,11 @@
 import os
 
-
 # ==========================================
 # Telegram
 # ==========================================
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")
-
 
 # ==========================================
 # Scanner
@@ -17,22 +15,11 @@ SCAN_INTERVAL = int(
     os.environ.get("SCAN_INTERVAL", "60")
 )
 
-
-# ==========================================
-# Alert Control
-# ==========================================
-
-ALERT_COOLDOWN = int(
-    os.environ.get("ALERT_COOLDOWN", "3600")
-)
-
-
 # ==========================================
 # Bybit
 # ==========================================
 
 BASE_URL = "https://api.bybit.com"
-
 
 # ==========================================
 # Pump / Dump
@@ -44,51 +31,69 @@ DUMP_PERCENT = -8.0
 UNUSUAL_MOVE_PERCENT = 6.0
 FOMO_PERCENT = 12.0
 
-
 # ==========================================
 # رشد از کف
 # ==========================================
 
 MIN_RISE_FROM_LOW = 3.0
 
-# حداقل درصد مسیر طی شده تا مقاومت
+# درصد مسیر طی شده تا مقاومت
 MIN_EXTENSION_PERCENT = 60.0
 
-
 # ==========================================
-# MultiTrade / Resistance
-# ==========================================
-
-# فاصله مجاز قیمت تا مقاومت
-RESISTANCE_DISTANCE_PERCENT = 3.5
-
-# سازگاری با نسخه جدید اسکنر
-FOUR_HOUR_RESISTANCE_DISTANCE = 3.5
-DAILY_RESISTANCE_DISTANCE = 3.5
-THREE_DAY_RESISTANCE_DISTANCE = 3.5
-WEEKLY_RESISTANCE_DISTANCE = 3.5
-
-# حداقل امتیاز برای ارسال هشدار
-MIN_SIGNAL_SCORE = 70
-
-
-# ==========================================
-# Volume Detection
+# مقاومت
 # ==========================================
 
-VOLUME_SPIKE_MULTIPLIER = 2.0
-
-
-# ==========================================
-# Trend Filter
-# ==========================================
-
-WEEKLY_GROWTH_ALERT = 50.0
-ATH_DISTANCE_ALERT = 5.0
-
+FOUR_HOUR_RESISTANCE_DISTANCE = 3.0
+DAILY_RESISTANCE_DISTANCE = 3.0
+THREE_DAY_RESISTANCE_DISTANCE = 4.0
+WEEKLY_RESISTANCE_DISTANCE = 6.0
 
 # ==========================================
-# Risk Control
+# Breakout / Pullback
 # ==========================================
 
-MAX_ALERTS_PER_SCAN = 10
+BREAKOUT_CONFIRM_PERCENT = 0.30
+PULLBACK_DISTANCE = 0.80
+
+# ==========================================
+# Volume
+# ==========================================
+
+VOLUME_MULTIPLIER = 1.5
+UNUSUAL_VOLUME_MULTIPLIER = 2.0
+
+# ==========================================
+# Score
+# ==========================================
+
+MIN_SCORE = 70
+MIN_MULTITRADE_SCORE = 70
+
+SCORE_EXTENSION = 20
+SCORE_RISE = 15
+SCORE_VOLUME = 10
+SCORE_PUMP = 10
+
+SCORE_4H = 20
+SCORE_1D = 20
+SCORE_3D = 25
+SCORE_1W = 30
+
+SCORE_BREAKOUT = 15
+SCORE_PULLBACK = 10
+
+# ==========================================
+# Probability
+# ==========================================
+
+MAX_CORRECTION_PROBABILITY = 85
+MIN_CORRECTION_PROBABILITY = 55
+
+# ==========================================
+# Alert
+# ==========================================
+
+ALERT_COOLDOWN = 1800
+
+ALERT_SHORT = "🟥
