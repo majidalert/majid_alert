@@ -52,7 +52,6 @@ FOMO_PERCENT = 12.0
 MIN_RISE_FROM_LOW = 3.0
 
 # حداقل درصد مسیر طی شده تا مقاومت
-
 MIN_EXTENSION_PERCENT = 60.0
 
 
@@ -60,8 +59,14 @@ MIN_EXTENSION_PERCENT = 60.0
 # MultiTrade / Resistance
 # ==========================================
 
-# فاصله مجاز قیمت تا مقاومت برای هشدار
+# فاصله مجاز قیمت تا مقاومت
 RESISTANCE_DISTANCE_PERCENT = 3.5
+
+# سازگاری با نسخه جدید اسکنر
+FOUR_HOUR_RESISTANCE_DISTANCE = 3.5
+DAILY_RESISTANCE_DISTANCE = 3.5
+THREE_DAY_RESISTANCE_DISTANCE = 3.5
+WEEKLY_RESISTANCE_DISTANCE = 3.5
 
 # حداقل امتیاز برای ارسال هشدار
 MIN_SIGNAL_SCORE = 70
@@ -79,7 +84,6 @@ VOLUME_SPIKE_MULTIPLIER = 2.0
 # ==========================================
 
 WEEKLY_GROWTH_ALERT = 50.0
-
 ATH_DISTANCE_ALERT = 5.0
 
 
