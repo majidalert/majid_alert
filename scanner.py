@@ -650,9 +650,12 @@ class MarketScanner:
                     price
                 )
 
-
                 if not ath:
                     continue
+
+# فقط ارزهایی که حداقل 50 درصد پایین‌تر از ATH هستند                                                
+                if ath_position > 50:
+                continue
 
 
 
