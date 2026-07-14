@@ -653,7 +653,8 @@ class MarketScanner:
                 if not ath:
                     continue
                     
-        
+                if ath_position > 50:
+                     continue
 
                 weekly_growth = await self.weekly_growth(
                     symbol,
