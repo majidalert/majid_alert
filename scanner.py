@@ -710,6 +710,10 @@ class MarketScanner:
 
                 r1 = resistance[0]["price"]
 
+                distance = ((r1 - price) / price) * 100
+
+                if distance > 3:
+                    continue
 
 
                 near = await self.near_resistance(
