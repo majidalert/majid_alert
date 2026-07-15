@@ -703,8 +703,8 @@ class MarketScanner:
 
 
                 if not resistance:
-                     print(symbol, "رد شد: resistance")
-                     continue
+                    print(symbol, "Rejected: no resistance")
+                    continue
 
 
                 r1 = resistance[0]["price"]
@@ -722,8 +722,8 @@ class MarketScanner:
 
 
                 if not near:
-                     print(symbol, "رد شد: near")
-                     continue
+                    print(symbol, "Rejected: near")
+                    continue
                     
                     
                 stretch = await self.stretch_check(
@@ -800,31 +800,30 @@ class MarketScanner:
                     price
                 )
 
-
-
-                if self.state.can_send(
+                if not self.state.can_send(
                     symbol,
                     "SHORT",
                     price
                 ):
+                    print(symbol, "Rejected: cooldown")
+                    continue
 
+                message = make_message(
 
-                    message = make_message(
+                    "🟥 SHORT MULTITRADE SETUP",
 
-                        "🟥 SHORT MULTITRADE SETUP",
+                    symbol,
 
-                        symbol,
+                    price,
 
-                        price,
+                    rise,
 
-                        rise,
+                    volume,
 
-                        volume,
-
-                        round(
-                            final_score,
-                            0
-                        ),
+                    round(
+                        final_score,
+                        0
+                ),
 
                         resistance=resistance,
 
