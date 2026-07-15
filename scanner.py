@@ -711,7 +711,7 @@ class MarketScanner:
 
                 distance = ((r1 - price) / price) * 100
 
-                if distance > 3:
+                if distance > 8:
                     continue
 
 
