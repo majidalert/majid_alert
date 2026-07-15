@@ -665,9 +665,8 @@ class MarketScanner:
                     price
                 )
 
-                # Reject weak weekly trend
-                 if weekly_growth < 30:
-                      continue
+                if weekly_growth < 30:
+                    continue
 
                 if weekly_growth >= 40:
 
