@@ -653,6 +653,10 @@ class MarketScanner:
                 if not ath:
                     continue
                     
+                # Reject coins far from ATH
+                if ath_position < 50:
+                    
+                    continue
                 if ath_position > 50:
                      continue
 
