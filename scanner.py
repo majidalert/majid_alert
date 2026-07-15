@@ -823,39 +823,37 @@ class MarketScanner:
                     round(
                         final_score,
                         0
-                ),
+                    ),
 
-                        resistance=resistance,
+                    resistance=resistance,
 
-                        extension=stretch,
+                    extension=stretch,
 
-                        multitrade_score=multi_score,
+                    multitrade_score=multi_score,
 
-                        weekly_growth=weekly_growth,
+                    weekly_growth=weekly_growth,
 
-                        ath=ath,
+                    ath=ath,
 
-                        ath_position=ath_position,
+                    ath_position=ath_position,
 
-                        tp1=tp["TP1"],
+                    tp1=tp["TP1"],
 
-                        tp2=tp["TP2"],
+                    tp2=tp["TP2"],
 
-                        tp3=tp["TP3"],
+                    tp3=tp["TP3"],
 
-                        correction_probability=correction,
+                    correction_probability=correction,
 
-                        breakout_probability=breakout,
+                    breakout_probability=breakout,
 
-                        entry_status=
-                        "Entry 1 فعال - انتظار مقاومت بعدی"
+                    entry_status="Entry 1 فعال - انتظار مقاومت بعدی"
 
-                    )
+                )
 
-
-                    alerts.append(
-                        message
-                    )
+                alerts.append(
+                    message
+                )
 
 
 
