@@ -658,7 +658,7 @@ class MarketScanner:
                 if not ath:
                     continue
 
-                if ath_position < 70:
+                if ath_position < 50:
                     print(symbol, "Rejected: ATH")
                     continue
 
