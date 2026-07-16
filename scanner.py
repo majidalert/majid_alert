@@ -172,6 +172,9 @@ class MarketScanner:
             return None, 0
 
         position = (price / ath) * 100
+        print(symbol)
+        print("ATH =", ath)
+        print("Position =", position)
 
         return ath, round(position, 2)
 
