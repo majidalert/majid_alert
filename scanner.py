@@ -668,6 +668,7 @@ class MarketScanner:
                 )
 
                 if weekly_growth < 30:
+                    print(symbol, "Rejected: Weekly")
                     continue
 
                 if weekly_growth >= 40:
