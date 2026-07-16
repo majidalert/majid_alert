@@ -650,15 +650,17 @@ class MarketScanner:
                     price
                 )
 
+                ath, ath_position = await self.ath_check(
+                    symbol,
+                    price
+                )
+
                 if not ath:
                     continue
-                    
-                # Reject coins far from ATH
-                if ath_position < 50:
-                    
+
+                if ath_position < 70:
+                    print(symbol, "Rejected: ATH")
                     continue
-                if ath_position > 50:
-                     continue
 
                 weekly_growth = await self.weekly_growth(
                     symbol,
