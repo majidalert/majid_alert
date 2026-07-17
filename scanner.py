@@ -789,14 +789,14 @@ class MarketScanner:
                 if final_score < MIN_SCORE:
                      print(
                          symbol,
-                         "Score=",
-                         final_score,
-                         "Stretch=",
-                         stretch,
-                         "Weekly=",
-                         weekly_growth,
-                         "ATH=",
-                         ath_position,
+                         "Rejected: SCORE",
+                         "Final=", round(final_score, 1),
+                         "Multi=", multi_score,
+                         "MSS=", mss,
+                         "Bonus=", mss_bonus,
+                         "Stretch=", stretch,
+                         "Weekly=", weekly_growth,
+                         "ATH=", ath_position,
                      )
                      continue
 
